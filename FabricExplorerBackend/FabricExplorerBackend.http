@@ -1,0 +1,11 @@
+@FabricExplorerBackend_HostAddress = http://localhost:8080
+@ConnectionId = 33333333-3333-3333-3333-333333333333
+
+GET {{FabricExplorerBackend_HostAddress}}/api/connections/
+Accept: application/json
+
+###
+Get {{FabricExplorerBackend_HostAddress}}/api/connections/{{ConnectionId}}
+Accept: application/json
+
+###
