@@ -65,10 +65,10 @@ namespace FabricExplorerBackend.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        [HttpPost("{connectionId}/active")]
-        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId, [FromHeader(Name = "X-Current-Connection-Id")] Guid currentConnectionId)
-        {
+        //[HttpPost("{connectionId}/active")]
+        //public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId, [FromHeader(Name = "X-Current-Connection-Id")] Guid currentConnectionId)
+        //{
 
-        }
+        //}
     }
 }
