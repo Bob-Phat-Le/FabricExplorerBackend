@@ -65,10 +65,13 @@ namespace FabricExplorerBackend.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        //[HttpPost("{connectionId}/active")]
-        //public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId, [FromHeader(Name = "X-Current-Connection-Id")] Guid currentConnectionId)
-        //{
-
-        //}
+        [HttpPost("{connectionId}/active")]
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId)
+        {
+            var response = await connectionService.ActiveConnection(Guid.NewGuid(), connectionId); // Thêm Authenticate để lấy UserId từ HttpContext
+            if (response.IsSuccess) 
+                return Ok(response);
+            return StatusCode(response.StatusCode, response);
+        }
     }
 }

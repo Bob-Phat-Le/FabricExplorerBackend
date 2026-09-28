@@ -142,9 +142,28 @@ namespace FabricExplorerBackend.Services.Implements
             }
         }
 
-        public Task<ApiResponse<ConfirmationResponse>> ActiveConnection(Guid targetConnectionId, Guid currentConnectionId)
+        public async Task<ApiResponse<ConfirmationResponse>> ActiveConnection(Guid userId, Guid targetConnectionId)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var targetConnection = await unitOfWork.ConnectionRepository.GetByIdAsync(targetConnectionId);
+                var user = await unitOfWork.UserRepository.GetByIdAsync(userId, true);
+
+                if (targetConnection == null)
+                    return new ApiResponse<ConfirmationResponse>(StatusCodes.Status404NotFound, "Target connection not found");
+
+                if (user == null)
+                    return new ApiResponse<ConfirmationResponse>(StatusCodes.Status404NotFound, "User not found");
+
+                user.ActiveConnectionId = targetConnectionId;
+                await unitOfWork.SaveChangesAsync();
+
+                return new ApiResponse<ConfirmationResponse>(StatusCodes.Status200OK, new ConfirmationResponse() { Message = "Active connection succeeded" });
+            }
+            catch (Exception Ex) 
+            {
+                return new ApiResponse<ConfirmationResponse>(StatusCodes.Status500InternalServerError, "Internal Server Error");
+            }
         }
     }
 }

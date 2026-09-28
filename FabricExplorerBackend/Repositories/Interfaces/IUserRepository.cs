@@ -2,8 +2,7 @@
 
 namespace FabricExplorerBackend.Repositories.Interfaces
 {
-    public interface IConnectionRepository : IGenericeRepository<Connection> 
+    public interface IUserRepository : IGenericeRepository<User>
     {
-        
     }
 }

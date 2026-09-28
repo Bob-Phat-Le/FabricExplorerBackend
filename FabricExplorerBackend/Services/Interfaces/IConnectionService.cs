@@ -13,6 +13,6 @@ namespace FabricExplorerBackend.Services.Interfaces
         Task<ApiResponse<ConfirmationResponse>> UpdateConnection(Guid connectionId, UpdateConnectionRequest request);
         Task<ApiResponse<ConfirmationResponse>> DeleteConnection(Guid connectionId);
         Task<ApiResponse<ConfirmationResponse>> TestConnection(Guid connectionId);
-        Task<ApiResponse<ConfirmationResponse>> ActiveConnection(Guid targetConnectionId, Guid currentConnectionId);
+        Task<ApiResponse<ConfirmationResponse>> ActiveConnection(Guid userId, Guid targetConnectionId);
     }
 }

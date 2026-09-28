@@ -7,7 +7,8 @@ namespace FabricExplorerBackend.Repositories.Implements
 {
     public class UnitOfWork(
         FabricExplorerDbContext context,
-        IConnectionRepository connectionRepository) : IUnitOfWork
+        IConnectionRepository connectionRepository,
+        IUserRepository userRepository) : IUnitOfWork
     {
 
         public async Task CommitTransaction()
@@ -36,5 +37,6 @@ namespace FabricExplorerBackend.Repositories.Implements
         }
 
         public IConnectionRepository ConnectionRepository => connectionRepository;
+        public IUserRepository UserRepository => userRepository;
     }
 }

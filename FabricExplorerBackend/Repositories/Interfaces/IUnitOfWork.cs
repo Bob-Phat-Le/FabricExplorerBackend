@@ -10,5 +10,6 @@ namespace FabricExplorerBackend.Repositories.Interfaces
         Task<int> SaveChangesAsync();
 
         IConnectionRepository ConnectionRepository { get; }
+        IUserRepository UserRepository { get; }
     }
 }
