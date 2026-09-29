@@ -9,6 +9,7 @@ using FabricExplorerBackend.Services.Implements;
 using FabricExplorerBackend.Services.Interfaces;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,11 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 // My Dependency Injection
+
+// -- Authentication
+builder.Services
+    .AddAuthentication()
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzuredAd"));
 
 // -- Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -47,6 +53,7 @@ builder.Services.AddSingleton<IDataProtector>(sp =>
 builder.Services.AddSingleton<ISecretProtector, SecretProtector>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // -- Mappers
 builder.Services.AddScoped<IConnectionMapper, ConnectionMapper>();
@@ -71,6 +78,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

@@ -20,6 +20,6 @@ namespace FabricExplorerBackend.Entities
         public string ClientSecret { get; set; } = null!;
 
         // References to related entities
-        public IEnumerable<UserPreference> UserPreference { get; set; } = null!;
+        public IEnumerable<User> Users { get; set; } = null!;
     }
 }

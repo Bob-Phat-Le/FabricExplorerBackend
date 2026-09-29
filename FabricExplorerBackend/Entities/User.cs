@@ -19,7 +19,7 @@ namespace FabricExplorerBackend.Entities
 
         public string UserName { get; set; } = null!;
         public string Email { get; set; } = null!;
-        public Guid UserPreferenceId { get; set; }
-        public UserPreference UserPreference { get; set; } = null!;
+        public Guid ActiveConnectionId { get; set; }
+        public Connection ActiveConnection { get; set; } = null!;
     }
 }

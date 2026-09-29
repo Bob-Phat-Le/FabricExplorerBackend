@@ -36,15 +36,7 @@ namespace FabricExplorerBackend.Persistences
                 UserName = "John Doe",
                 Email = "john.doe@company.com",
                 CreatedAt = createdAt,
-                UserPreferenceId = userPreferenceId
-            };
-
-            UserPreference seededUserPreference = new()
-            {
-                Id = userPreferenceId,
-                CreatedAt = createdAt,
-                UserId = userId,
-                LastUsedConnectionId = connectionId1
+                ActiveConnectionId = connectionId1,
             };
 
             Connection seededConnection1 = new()
@@ -75,9 +67,6 @@ namespace FabricExplorerBackend.Persistences
 
             modelBuilder.Entity<User>()
                 .HasData(seededUser);
-
-            modelBuilder.Entity<UserPreference>()
-                .HasData(seededUserPreference);
 
             modelBuilder.Entity<Connection>()
                 .HasData(

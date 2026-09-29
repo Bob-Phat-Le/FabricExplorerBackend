@@ -22,9 +22,7 @@ namespace FabricExplorerBackend.Repositories.Implements
                 context.Connections.Update(entity);
             }
             else
-            {
                 context.Connections.Remove(entity);
-            }
         }
 
         public async Task DeleteAll()
