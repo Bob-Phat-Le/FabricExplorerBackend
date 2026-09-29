@@ -6,10 +6,12 @@ using FabricExplorerBackend.Models.Responses.Connection;
 using FabricExplorerBackend.Repositories.Interfaces;
 using FabricExplorerBackend.Securities;
 using FabricExplorerBackend.Services.Interfaces;
+using System.Security.Claims;
 
 namespace FabricExplorerBackend.Services.Implements
 {
     public class ConnectionService(
+        IHttpContextAccessor httpContext,
         IFabricContextFactory contextFactory,
         ITokenService tokenService,
         ISecretProtector secretProtector,
@@ -59,7 +61,8 @@ namespace FabricExplorerBackend.Services.Implements
                     return new ApiResponse<ConfirmationResponse>(StatusCodes.Status404NotFound, "Connection not found");
                 }
 
-                request.ClientSecret = secretProtector.Protect(request.ClientSecret);
+                if (!string.IsNullOrEmpty(request.ClientSecret))
+                    request.ClientSecret = secretProtector.Protect(request.ClientSecret);
                 connectionMapper.Map(request, connection);
                 connection.UpdatedAt = DateTimeOffset.UtcNow;
                 connection.UpdatedBy = null; // You can set this to the current user if you have authentication implemented
@@ -109,6 +112,7 @@ namespace FabricExplorerBackend.Services.Implements
                 var connection = connectionMapper.Map(request);
                 connection.CreatedAt = DateTimeOffset.UtcNow;
                 connection.CreatedBy = Guid.Empty;
+                connection.ClientSecret = secretProtector.Protect(connection.ClientSecret);
 
                 await unitOfWork.ConnectionRepository.AddAsync(connection);
                 await unitOfWork.SaveChangesAsync();
@@ -142,18 +146,22 @@ namespace FabricExplorerBackend.Services.Implements
             }
         }
 
-        public async Task<ApiResponse<ConfirmationResponse>> ActiveConnection(Guid userId, Guid targetConnectionId)
+        public async Task<ApiResponse<ConfirmationResponse>> ActiveConnection(Guid targetConnectionId)
         {
             try
             {
+                var userId = httpContext?.HttpContext?.User.FindFirstValue("oid");
+                if (string.IsNullOrEmpty(userId))
+                    return new ApiResponse<ConfirmationResponse>(StatusCodes.Status404NotFound, "User Id not found");
+
+                var user = await unitOfWork.UserRepository.GetByIdAsync(Guid.Parse(userId), true);
+                if (user == null)
+                    return new ApiResponse<ConfirmationResponse>(StatusCodes.Status404NotFound, "User not found");
+
                 var targetConnection = await unitOfWork.ConnectionRepository.GetByIdAsync(targetConnectionId);
-                var user = await unitOfWork.UserRepository.GetByIdAsync(userId, true);
 
                 if (targetConnection == null)
                     return new ApiResponse<ConfirmationResponse>(StatusCodes.Status404NotFound, "Target connection not found");
-
-                if (user == null)
-                    return new ApiResponse<ConfirmationResponse>(StatusCodes.Status404NotFound, "User not found");
 
                 user.ActiveConnectionId = targetConnectionId;
                 await unitOfWork.SaveChangesAsync();

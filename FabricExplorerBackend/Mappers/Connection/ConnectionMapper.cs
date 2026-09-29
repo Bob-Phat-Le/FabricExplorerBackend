@@ -5,7 +5,7 @@ using Riok.Mapperly.Abstractions;
 
 namespace FabricExplorerBackend.Mappers
 {
-    [Mapper]
+    [Mapper(AllowNullPropertyAssignment = false)]
     public partial class ConnectionMapper : IConnectionMapper
     {
 

@@ -3,10 +3,13 @@ using FabricExplorerBackend.Models.Requests.Connection;
 using FabricExplorerBackend.Models.Responses;
 using FabricExplorerBackend.Models.Responses.Connection;
 using FabricExplorerBackend.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FabricExplorerBackend.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ConnectionsController(IConnectionService connectionService) : ControllerBase
@@ -68,7 +71,7 @@ namespace FabricExplorerBackend.Controllers
         [HttpPost("{connectionId}/active")]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId)
         {
-            var response = await connectionService.ActiveConnection(Guid.NewGuid(), connectionId); // Thêm Authenticate để lấy UserId từ HttpContext
+            var response = await connectionService.ActiveConnection(connectionId); 
             if (response.IsSuccess) 
                 return Ok(response);
             return StatusCode(response.StatusCode, response);
