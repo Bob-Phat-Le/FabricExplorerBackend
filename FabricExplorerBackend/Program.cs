@@ -23,9 +23,9 @@ builder.Services.AddOpenApi();
 // My Dependency Injection
 
 // -- Authentication
-builder.Services
-    .AddAuthentication()
-    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzuredAd"));
+//builder.Services
+//    .AddAuthentication()
+//    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzuredAd"));
 
 // -- Swagger
 builder.Services.AddEndpointsApiExplorer();

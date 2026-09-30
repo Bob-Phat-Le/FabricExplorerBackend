@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace FabricExplorerBackend.Controllers
 {
-    [Authorize]
+    //[Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ConnectionsController(IConnectionService connectionService) : ControllerBase
