@@ -35,7 +35,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<FabricExplorerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("FabricExplorerDatabase")));
 builder.Services.AddSingleton<IConnectionMultiplexer>(
-    ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisCache") + ",abortConnect=false"!));
+    ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisCache")!));
 builder.Services.AddHttpContextAccessor();
 builder.Services
     .AddDataProtection()
