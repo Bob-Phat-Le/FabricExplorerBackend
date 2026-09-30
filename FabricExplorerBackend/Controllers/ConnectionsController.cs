@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace FabricExplorerBackend.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ConnectionsController(IConnectionService connectionService) : ControllerBase
@@ -68,6 +68,7 @@ namespace FabricExplorerBackend.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
+        //[Authorize]
         [HttpPost("{connectionId}/active")]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId)
         {

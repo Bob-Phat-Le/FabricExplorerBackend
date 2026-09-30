@@ -7,6 +7,8 @@ using FabricExplorerBackend.Repositories.Interfaces;
 using FabricExplorerBackend.Securities;
 using FabricExplorerBackend.Services.Implements;
 using FabricExplorerBackend.Services.Interfaces;
+using FabricExplorerBackend.TestAuthenticationHandler;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
@@ -26,6 +28,14 @@ builder.Services.AddOpenApi();
 //builder.Services
 //    .AddAuthentication()
 //    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzuredAd"));
+
+// -- Test Authentication | This section is only for testing the active connection endpoint by retrieve the user id from the HttpContext.User
+builder.Services
+    .AddAuthentication()
+    .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
+        "Test",
+        options => { }
+    );
 
 // -- Swagger
 builder.Services.AddEndpointsApiExplorer();
