@@ -14,7 +14,7 @@ namespace FabricExplorerBackend.Services.Implements
         IHttpContextAccessor httpContext,
         IFabricContextFactory fabricContextFactory) : ILakehouseService
     {
-        public async Task<ApiResponse<PagedResponse<Lakehouse>>> GetAllLakehouse(paginationRequest pageInformation)
+        public async Task<ApiResponse<PagedResponse<Lakehouse>>> GetAllLakehouse(PaginationRequest pageInformation)
         {
             //var connectionId = httpContext.HttpContext?.Request.Headers
             //    .FirstOrDefault(h => h.Key == configuration.GetValue<string>("Headers:Connection")).Value;

@@ -17,7 +17,7 @@ namespace FabricExplorerBackend.Services.Implements
         IUnitOfWork unitOfWork,
         IConnectionMapper connectionMapper) : IConnectionService
     {
-        public async Task<ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>> GetAllConnectionsAsync(paginationRequest? paginationRequest)
+        public async Task<ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>> GetAllConnectionsAsync(PaginationRequest? paginationRequest)
         {
             try
             {

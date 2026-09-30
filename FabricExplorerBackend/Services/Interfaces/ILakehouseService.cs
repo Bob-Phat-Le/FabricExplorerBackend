@@ -6,6 +6,6 @@ namespace FabricExplorerBackend.Services.Interfaces
 {
     public interface ILakehouseService
     {
-        Task<ApiResponse<PagedResponse<Lakehouse>>> GetAllLakehouse(paginationRequest pageInformation);
+        Task<ApiResponse<PagedResponse<Lakehouse>>> GetAllLakehouse(PaginationRequest pageInformation);
     }
 }
