@@ -15,9 +15,9 @@ namespace FabricExplorerBackend.Controllers
     public class ConnectionsController(IConnectionService connectionService) : ControllerBase
     {
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<ConnectionResponse>>>> GetAllConnections()
+        public async Task<ActionResult<ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>>> GetAllConnections([FromQuery]paginationRequest? paginationRequest)
         {
-            var response = await connectionService.GetAllConnectionsAsync();
+            var response = await connectionService.GetAllConnectionsAsync(paginationRequest);
             if (response.IsSuccess)
                 return Ok(response);
             return StatusCode(response.StatusCode, response);

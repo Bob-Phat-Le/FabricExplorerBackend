@@ -2,8 +2,15 @@
 {
     public class PagedResponse<T>
     {
-        public IReadOnlyList<T> Items { get; init; } = null!;
-        public PageInformation PageInformation { get; set; } = null!;
+        public T Items { get; init; }
+        public PageInformation? PageInformation { get; set; } = null!;
         //public string? ContinuationToken { get; init; }
+
+        public PagedResponse() { }
+        public PagedResponse(T items, PageInformation? pageInformation)
+        {
+            Items = items;
+            PageInformation = pageInformation;
+        }
     }
 }
