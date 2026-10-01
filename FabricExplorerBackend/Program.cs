@@ -85,6 +85,7 @@ builder.Services.AddScoped<IFabricContextFactory, FabricContextFactory>();
 builder.Services.AddScoped<IConnectionService, ConnectionService>();
 builder.Services.AddScoped<IClientFactory, ClientFactory>();
 builder.Services.AddScoped<ICacheService, CacheService>();
+builder.Services.AddScoped<ILakehouseService, LakehouseService>();
 
 var app = builder.Build();
 await app.MigrateDatabaseAsync();
