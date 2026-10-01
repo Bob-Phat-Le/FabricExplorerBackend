@@ -119,7 +119,7 @@ namespace FabricExplorerBackend.Services.Implements
             }
             catch (Exception Ex)
             {
-                return new(StatusCodes.Status500InternalServerError, "Internal Server Error");
+                return new(StatusCodes.Status500InternalServerError, Ex.Message);
             }
         }
 
@@ -197,6 +197,26 @@ namespace FabricExplorerBackend.Services.Implements
                 return new(StatusCodes.Status200OK, new ConfirmationResponse() { Message = "Failed active connection" });
             }
             catch (Exception Ex) 
+            {
+                return new(StatusCodes.Status500InternalServerError, "Internal Server Error");
+            }
+        }
+
+        public async Task<ApiResponse<ConnectionResponse>> GetActiveConnectionAsync()
+        {
+            try
+            {
+                var userId = httpContext?.HttpContext?.User.FindFirstValue("oid");
+                if (string.IsNullOrEmpty(userId))
+                    return new(StatusCodes.Status404NotFound, "User id not found");
+
+                var user = await unitOfWork.UserRepository.GetByIdWithConnectionAsync(Guid.Parse(userId));
+                if (user == null)
+                    return new(StatusCodes.Status404NotFound, "User not found");
+
+                return new(StatusCodes.Status200OK, connectionMapper.Map(user.ActiveConnection));
+            }
+            catch (Exception Ex)
             {
                 return new(StatusCodes.Status500InternalServerError, "Internal Server Error");
             }

@@ -18,7 +18,7 @@ namespace FabricExplorerBackend.Services.Implements
             var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { "https://api.fabric.microsoft.com/.default" }));
 
             var key = cacheService.CreateCacheKey(tenantId.ToString(), clientId.ToString(), workspaceId.ToString());
-            await cacheService.SetValueAsync(key, token.Token, token.ExpiresOn);
+            await cacheService.SetValueAsync(key, token.Token, token.ExpiresOn-DateTimeOffset.UtcNow);
 
             return token.Token;
         }

@@ -4,11 +4,13 @@ using FabricExplorerBackend.Models.Responses;
 using FabricExplorerBackend.Models.Responses.Connection;
 using FabricExplorerBackend.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace FabricExplorerBackend.Controllers
 {
+    [EnableCors("MyAllowSpecificOrigin")]
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
@@ -27,6 +29,15 @@ namespace FabricExplorerBackend.Controllers
         public async Task<ActionResult<ApiResponse<ConnectionResponse>>> GetConnectionById(Guid connectionId)
         {
             var response = await connectionService.GetConnectionByIdAsync(connectionId);
+            if (response.IsSuccess)
+                return Ok(response);
+            return StatusCode(response.StatusCode, response);
+        }
+
+        [HttpGet("active")]
+        public async Task<ActionResult<ApiResponse<ConnectionResponse>>> GetActiveConnection()
+        {
+            var response = await connectionService.GetActiveConnectionAsync();
             if (response.IsSuccess)
                 return Ok(response);
             return StatusCode(response.StatusCode, response);
@@ -68,7 +79,6 @@ namespace FabricExplorerBackend.Controllers
             return StatusCode(response.StatusCode, response);
         }
 
-        //[Authorize]
         [HttpPost("{connectionId}/active")]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId)
         {

@@ -46,6 +46,14 @@ namespace FabricExplorerBackend.Repositories.Implements
             return await query.FirstOrDefaultAsync(u => !u.IsDeleted && u.Id == id);
         }
 
+        public async Task<User?> GetByIdWithConnectionAsync(Guid userId, bool trackChanges = false)
+        {
+            var query = context.Users.AsQueryable().Include(u => u.ActiveConnection);
+            if (!trackChanges)
+                query.AsNoTracking();
+            return await query.FirstOrDefaultAsync(u => !u.IsDeleted && u.Id == userId);
+        }
+
         public async Task Update(User entity)
         {
             context.Users.Update(entity);

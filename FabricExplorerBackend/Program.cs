@@ -37,6 +37,17 @@ builder.Services
         options => { }
     );
 
+// -- Test Cors
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("MyAllowSpecificOrigin", policy =>
+    {
+        policy.WithOrigins("http://127.0.0.1:5500")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 // -- Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -87,6 +98,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("MyAllowSpecificOrigin");
 
 app.UseAuthentication();
 app.UseAuthorization();
