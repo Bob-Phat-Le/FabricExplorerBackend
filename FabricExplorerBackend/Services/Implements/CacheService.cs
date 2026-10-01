@@ -17,12 +17,12 @@ namespace FabricExplorerBackend.Services.Implements
             return value;
         }
 
-        public async Task SetValueAsync(string key, object value, DateTimeOffset? expiration = null)
+        public async Task SetValueAsync(string key, object value, TimeSpan? expiration = null)
         {
             var redis = muxer.GetDatabase();
             if (expiration.HasValue)
             {
-                await redis.StringSetAsync(key, value.ToString(), expiration.Value.TimeOfDay);
+                await redis.StringSetAsync(key, value.ToString(), expiration.Value);
                 return;
             }
             await redis.StringSetAsync(key, value.ToString());
