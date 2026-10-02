@@ -1,4 +1,5 @@
 ﻿using FabricExplorerBackend.Commons;
+using FabricExplorerBackend.Mappers.Result;
 using FabricExplorerBackend.Models.Responses;
 using FabricExplorerBackend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -18,9 +19,10 @@ namespace FabricExplorerBackend.Controllers
             [FromQuery] PaginationRequest? paginationRequest)
         {
             var response = await lakehouseService.GetAllTablesAsync(connectionId, lakehouseId, paginationRequest);
+            var statusCode = ResultMapper.ToHttpStatusCode(response.ResultStatus);
             if (response.IsSuccess)
-                return Ok(response);
-            return StatusCode(response.StatusCode, response);
+                return Ok(new ApiResponse<PagedResponse<IEnumerable<Table>>>(statusCode, response.Data));
+            return StatusCode(statusCode, new ApiResponse<PagedResponse<IEnumerable<Table>>>(statusCode, response.Errors));
         }
 
         [HttpPost("{lakehouseId}/tables/{tableName}/load")]
@@ -31,9 +33,10 @@ namespace FabricExplorerBackend.Controllers
             [FromBody] LoadTableRequest request)
         {
             var response = await lakehouseService.LoadTableAsync(connectionId, lakehouseId, tableName, request);
+            var statusCode = ResultMapper.ToHttpStatusCode(response.ResultStatus);
             if (response.IsSuccess)
-                return Ok(response);
-            return StatusCode(response.StatusCode, response);
+                return Ok(new ApiResponse<ConfirmationResponse>(statusCode, response.Data));
+            return StatusCode(statusCode, new ApiResponse<ConfirmationResponse>(statusCode, response.Errors));  
 
             throw new NotImplementedException();
         }

@@ -7,13 +7,13 @@ namespace FabricExplorerBackend.Services.Interfaces
 {
     public interface IConnectionService
     {
-        Task<ApiResponse<ConnectionResponse>> CreateConnectionAsync(CreateConnectionRequest request);
-        Task<ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>> GetAllConnectionsAsync(PaginationRequest? paginationRequest);
-        Task<ApiResponse<ConnectionResponse>> GetConnectionByIdAsync(Guid connectionId);
-        Task<ApiResponse<ConnectionResponse>> GetActiveConnectionAsync();
-        Task<ApiResponse<ConfirmationResponse>> UpdateConnection(Guid connectionId, UpdateConnectionRequest request);
-        Task<ApiResponse<ConfirmationResponse>> DeleteConnection(Guid connectionId);
-        Task<ApiResponse<ConfirmationResponse>> TestConnection(Guid connectionId);
-        Task<ApiResponse<ConfirmationResponse>> ActiveConnection(Guid targetConnectionId);
+        Task<Result<ConfirmationResponse>> CreateConnectionAsync(CreateConnectionRequest request);
+        Task<Result<PagedResponse<IEnumerable<ConnectionResponse>>>> GetAllConnectionsAsync(PaginationRequest? paginationRequest);
+        Task<Result<ConnectionResponse>> GetConnectionByIdAsync(Guid connectionId);
+        Task<Result<ConnectionResponse>> GetActiveConnectionAsync();
+        Task<Result<ConfirmationResponse>> UpdateConnection(Guid connectionId, UpdateConnectionRequest request);
+        Task<Result<ConfirmationResponse>> DeleteConnection(Guid connectionId);
+        Task<Result<ConfirmationResponse>> TestConnection(Guid connectionId);
+        Task<Result<ConfirmationResponse>> ActiveConnection(Guid targetConnectionId);
     }
 }
