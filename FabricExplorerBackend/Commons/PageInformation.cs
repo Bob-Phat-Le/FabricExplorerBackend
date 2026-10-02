@@ -1,5 +1,4 @@
-﻿using FabricExplorerBackend.Enums;
-using System.Text.Json.Serialization;
+﻿using FabricExplorerBackend.Domain.Enums;
 
 namespace FabricExplorerBackend.Commons
 {

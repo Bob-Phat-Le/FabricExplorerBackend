@@ -1,0 +1,41 @@
+﻿using FabricExplorerBackend.Commons.Models.Responses;
+using FabricExplorerBackend.Features.Fabric.Client;
+using FabricExplorerBackend.Features.Token;
+using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
+using FabricExplorerBackend.Infrastructures.Securities;
+
+namespace FabricExplorerBackend.Features.Fabric.Context
+{
+    public class FabricContextFactory(
+        IUnitOfWork unitOfWork,
+        ITokenService tokenService,
+        IClientFactory clientFactory,
+        ISecretProtector secretProtector) : IFabricContextFactory
+    {
+        private async Task<FabricContext> CreateFabricContextAsync(Guid tenantId, Guid connectionId, Guid workspaceId, string accessToken)
+        {
+            return new FabricContext()
+            {
+                TenantId = tenantId,
+                ConnectionId = connectionId,
+                WorkspaceId = workspaceId,
+                Client = clientFactory.CreateClientAsync(accessToken)
+            };
+        }
+
+        public async Task<FabricContext?> CreateFabricContextAsync(Domain.Entities.Connection connection)
+        {
+            var token = await tokenService.GetTokenAsync(connection.TenantId, connection.ClientId, connection.WorkspaceId);
+            if (string.IsNullOrEmpty(token))
+                token = await tokenService.CreateTokenAsync(
+                    connection.TenantId,
+                    connection.ClientId,
+                    connection.WorkspaceId,
+                    secretProtector.Unprotect(connection.ClientSecret));
+
+            var context = await CreateFabricContextAsync(connection.TenantId, connection.Id, connection.WorkspaceId, token);
+
+            return context;
+        }
+    }
+}

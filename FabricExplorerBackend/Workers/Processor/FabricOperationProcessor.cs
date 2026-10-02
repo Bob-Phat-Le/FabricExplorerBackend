@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Repositories.Interfaces;
+﻿using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 
 namespace FabricExplorerBackend.Workers.Processor
 {

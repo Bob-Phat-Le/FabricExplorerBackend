@@ -1,7 +1,7 @@
 ﻿using FabricExplorerBackend.Commons;
-using FabricExplorerBackend.Mappers.Result;
-using FabricExplorerBackend.Models.Responses;
-using FabricExplorerBackend.Services.Interfaces;
+using FabricExplorerBackend.Commons.Models.Responses;
+using FabricExplorerBackend.Features.Fabric.Lakehouse;
+using FabricExplorerBackend.Features.Result;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Fabric.Api.Lakehouse.Models;
 
@@ -15,7 +15,7 @@ namespace FabricExplorerBackend.Controllers
         [HttpGet("{lakehouseId}/tables")]
         public async Task<ActionResult<ApiResponse<PagedResponse<IEnumerable<Table>>>>> GetAllTables(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
-            Guid lakehouseId, 
+            Guid lakehouseId,
             [FromQuery] PaginationRequest? paginationRequest)
         {
             var response = await lakehouseService.GetAllTablesAsync(connectionId, lakehouseId, paginationRequest);
@@ -27,7 +27,7 @@ namespace FabricExplorerBackend.Controllers
 
         [HttpPost("{lakehouseId}/tables/{tableName}/load")]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> LoadTable(
-            [FromHeader(Name = "X-Connection-Id")] Guid connectionId, 
+            [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
             Guid lakehouseId,
             string tableName,
             [FromBody] LoadTableRequest request)
@@ -36,7 +36,7 @@ namespace FabricExplorerBackend.Controllers
             var statusCode = ResultMapper.ToHttpStatusCode(response.ResultStatus);
             if (response.IsSuccess)
                 return Ok(new ApiResponse<ConfirmationResponse>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<ConfirmationResponse>(statusCode, response.Errors));  
+            return StatusCode(statusCode, new ApiResponse<ConfirmationResponse>(statusCode, response.Errors));
 
             throw new NotImplementedException();
         }
