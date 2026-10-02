@@ -1,4 +1,5 @@
 ﻿using FabricExplorerBackend.Commons;
+using FabricExplorerBackend.Enums;
 using FabricExplorerBackend.Mappers.Connection;
 using FabricExplorerBackend.Models.Requests.Connection;
 using FabricExplorerBackend.Models.Responses;
@@ -17,7 +18,7 @@ namespace FabricExplorerBackend.Services.Implements
         IUnitOfWork unitOfWork,
         IConnectionMapper connectionMapper) : IConnectionService
     {
-        public async Task<ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>> GetAllConnectionsAsync(PaginationRequest? paginationRequest)
+        public async Task<Result<PagedResponse<IEnumerable<ConnectionResponse>>>> GetAllConnectionsAsync(PaginationRequest? paginationRequest)
         {
             try
             {
@@ -41,41 +42,43 @@ namespace FabricExplorerBackend.Services.Implements
 
                 IEnumerable<ConnectionResponse> connectionResponseList = connectionMapper.Map(connectionList);
 
-                return new(StatusCodes.Status200OK, new PagedResponse<IEnumerable<ConnectionResponse>>(connectionResponseList, pageInformation));
+                return Result<PagedResponse<IEnumerable<ConnectionResponse>>>
+                    .Success(new PagedResponse<IEnumerable<ConnectionResponse>>(connectionResponseList, pageInformation));
+
             }
             catch(Exception Ex)
             {
-                return new(StatusCodes.Status500InternalServerError, "Internal Server Error");
+                return Result<PagedResponse<IEnumerable<ConnectionResponse>>>
+                    .Failure(ResultStatus.InternalError, "Internal Server Error");
             }
         }
 
-        public async Task<ApiResponse<ConnectionResponse>> GetConnectionByIdAsync(Guid connectionId)
+        public async Task<Result<ConnectionResponse>> GetConnectionByIdAsync(Guid connectionId)
         {
             try
             {
                 var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
                 if (connection == null)
                 {
-                    return new(StatusCodes.Status404NotFound, "Connection not found");
+                    return Result<ConnectionResponse>.Failure(ResultStatus.NotFound, "Connection not found");
                 }
                 var connectionResponse = connectionMapper.Map(connection);
-                return new(StatusCodes.Status200OK, connectionResponse);
-
+                return Result<ConnectionResponse>.Success(connectionResponse);
             }
             catch (Exception Ex)
             {
-                return new(StatusCodes.Status500InternalServerError, "Internal Server Error");
+                return Result<ConnectionResponse>.Failure(ResultStatus.InternalError, "Internal Server Error");
             }
         }
 
-        public async Task<ApiResponse<ConfirmationResponse>> UpdateConnection(Guid connectionId, UpdateConnectionRequest request)
+        public async Task<Result<ConfirmationResponse>> UpdateConnection(Guid connectionId, UpdateConnectionRequest request)
         {
             try
             {
                 var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, true);
                 if (connection == null)
                 {
-                    return new(StatusCodes.Status404NotFound, "Connection not found");
+                    return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "Connection not found");
                 }
 
                 if (!string.IsNullOrEmpty(request.ClientSecret))
@@ -88,42 +91,42 @@ namespace FabricExplorerBackend.Services.Implements
                 var lineChanges = await unitOfWork.SaveChangesAsync();
 
                 if (lineChanges > 0)
-                    return new(StatusCodes.Status200OK, new ConfirmationResponse { Message = "Connection updated successfully" });
-                return new(StatusCodes.Status400BadRequest, "Failed to update connection");
+                    return Result<ConfirmationResponse>.Success(new ConfirmationResponse { Message = "Connection updated successfully" });
+                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "Failed to update connection");
             }
             catch (Exception Ex)
             {
-                return new(StatusCodes.Status500InternalServerError, "Internal Server Error");
+                return Result<ConfirmationResponse>.Failure(ResultStatus.InternalError, "Internal Server Error");
             }
         }
 
-        public async Task<ApiResponse<ConfirmationResponse>> TestConnection(Guid connectionId)
+        public async Task<Result<ConfirmationResponse>> TestConnection(Guid connectionId)
         {
             try
             {
                 var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
                 if (connection == null)
                 {
-                    return new(StatusCodes.Status404NotFound, "Connection not found");
+                    return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "Connection not found");
                 }
 
                 var context = await contextFactory.CreateFabricContextAsync(connection);
                 if (context == null)
-                    return new(StatusCodes.Status400BadRequest, "Can not creat context with this connection id");
+                    return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "Can not create context with this connection id");
 
                 var response = await context.Client.Core.Workspaces.GetWorkspaceAsync(context.WorkspaceId);
 
                 if (response != null && response.Value.Id == connection.WorkspaceId)
-                    return new(StatusCodes.Status200OK, new ConfirmationResponse() { Message = "Connection check succeeded" });
-                return new(StatusCodes.Status400BadRequest, "Failed to check connection");
+                    return Result<ConfirmationResponse>.Success(new ConfirmationResponse() { Message = "Connection check succeeded" });
+                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "Failed to check connection");
             }
             catch (Exception Ex)
             {
-                return new(StatusCodes.Status500InternalServerError, Ex.Message);
+                return Result<ConfirmationResponse>.Failure(ResultStatus.InternalError, Ex.Message);
             }
         }
 
-        public async Task<ApiResponse<ConnectionResponse>> CreateConnectionAsync(CreateConnectionRequest request)
+        public async Task<Result<ConfirmationResponse>> CreateConnectionAsync(CreateConnectionRequest request)
         {
             try
             {
@@ -138,87 +141,87 @@ namespace FabricExplorerBackend.Services.Implements
                 if (lineChanges > 0)
                 {
                     var connectionResponse = connectionMapper.Map(connection);
-                    return new(StatusCodes.Status201Created, connectionResponse);
+                    return Result<ConfirmationResponse>.Success(new ConfirmationResponse { Message = "Connection created successfully" });
                 }
 
-                return new(StatusCodes.Status400BadRequest, "Failed to create connection");
+                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "Failed to create connection");
             }
             catch(Exception Ex)
             {
-                return new(StatusCodes.Status500InternalServerError, "Internal Server Error");
+                return Result<ConfirmationResponse>.Failure(ResultStatus.InternalError, "Internal Server Error");
             }
         }
 
-        public async Task<ApiResponse<ConfirmationResponse>> DeleteConnection(Guid connectionId)
+        public async Task<Result<ConfirmationResponse>> DeleteConnection(Guid connectionId)
         {
             try
             {
                 var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
                 if (connection == null)
-                    return new(StatusCodes.Status404NotFound, "Connection not found");
+                    return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "Connection not found");
 
                 await unitOfWork.ConnectionRepository.Delete(connection);
                 var lineChanges = await unitOfWork.SaveChangesAsync();
 
                 if (lineChanges > 0)
-                    return new(StatusCodes.Status200OK, new ConfirmationResponse { Message = "Connection deleted successfully" });
+                    return Result<ConfirmationResponse>.Success(new ConfirmationResponse { Message = "Connection deleted successfully" });
 
-                return new(StatusCodes.Status400BadRequest, "Failed to delete connection");
+                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "Failed to delete connection");
             }
             catch(Exception Ex)
             {
-                return new(StatusCodes.Status500InternalServerError, "Internal Server Error");
+                return Result<ConfirmationResponse>.Failure(ResultStatus.InternalError, "Internal Server Error");
             }
         }
 
-        public async Task<ApiResponse<ConfirmationResponse>> ActiveConnection(Guid targetConnectionId)
+        public async Task<Result<ConfirmationResponse>> ActiveConnection(Guid targetConnectionId)
         {
             try
             {
                 var userId = httpContext?.HttpContext?.User.FindFirstValue("oid");
                 if (string.IsNullOrEmpty(userId))
-                    return new(StatusCodes.Status404NotFound, "User id not found");
+                    return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "User id not found");
 
                 var user = await unitOfWork.UserRepository.GetByIdAsync(Guid.Parse(userId), true);
                 if (user == null)
-                    return new(StatusCodes.Status404NotFound, "User not found");
+                    return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "User not found");
 
                 var targetConnection = await unitOfWork.ConnectionRepository.GetByIdAsync(targetConnectionId);
 
                 if (targetConnection == null)
-                    return new(StatusCodes.Status404NotFound, "Target connection not found");
+                    return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "Target connection not found");
 
                 user.ActiveConnectionId = targetConnectionId;
                 var lineChanges = await unitOfWork.SaveChangesAsync();
                 
                 if (lineChanges > 0)
-                    return new(StatusCodes.Status200OK, new ConfirmationResponse() { Message = "Active connection succeeded" });
+                    return Result<ConfirmationResponse>.Success(new ConfirmationResponse() { Message = "Active connection succeeded" });
                    
-                return new(StatusCodes.Status200OK, new ConfirmationResponse() { Message = "Failed active connection" });
+                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "Failed active connection");
             }
             catch (Exception Ex) 
             {
-                return new(StatusCodes.Status500InternalServerError, "Internal Server Error");
+                return Result<ConfirmationResponse>.Failure(ResultStatus.InternalError, "Internal Server Error");
             }
         }
 
-        public async Task<ApiResponse<ConnectionResponse>> GetActiveConnectionAsync()
+        public async Task<Result<ConnectionResponse>> GetActiveConnectionAsync()
         {
             try
             {
                 var userId = httpContext?.HttpContext?.User.FindFirstValue("oid");
                 if (string.IsNullOrEmpty(userId))
-                    return new(StatusCodes.Status404NotFound, "User id not found");
+                    return Result<ConnectionResponse>.Failure(ResultStatus.NotFound, "User id not found");
 
                 var user = await unitOfWork.UserRepository.GetByIdWithConnectionAsync(Guid.Parse(userId));
                 if (user == null)
-                    return new(StatusCodes.Status404NotFound, "User not found");
+                    return Result<ConnectionResponse>.Failure(ResultStatus.NotFound, "User not found");
 
-                return new(StatusCodes.Status200OK, connectionMapper.Map(user.ActiveConnection));
+                return Result<ConnectionResponse>.Success(connectionMapper.Map(user.ActiveConnection));
             }
             catch (Exception Ex)
             {
-                return new(StatusCodes.Status500InternalServerError, "Internal Server Error");
+                return Result<ConnectionResponse>.Failure(ResultStatus.InternalError, "Internal Server Error");
             }
         }
     }
