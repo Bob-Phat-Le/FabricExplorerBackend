@@ -1,15 +1,16 @@
 ﻿using FabricExplorerBackend.Commons;
-using FabricModels = Microsoft.Fabric.Api.Lakehouse.Models;
-using System.Security.Claims;
-using FabricExplorerBackend.Services.Interfaces;
+using FabricExplorerBackend.Enums;
+using FabricExplorerBackend.Mappers.FabricOperation;
+using FabricExplorerBackend.Models.Responses;
+using FabricExplorerBackend.Models.Responses.Connection;
 using FabricExplorerBackend.Repositories.Interfaces;
+using FabricExplorerBackend.Securities;
+using FabricExplorerBackend.Services.Interfaces;
 using Microsoft.Fabric.Api.Core.Models;
 using Microsoft.Fabric.Api.Lakehouse.Models;
-using FabricExplorerBackend.Securities;
-using FabricExplorerBackend.Models.Responses;
 using Microsoft.Fabric.Api.Utils;
-using FabricExplorerBackend.Mappers.FabricOperation;
-using FabricExplorerBackend.Enums;
+using System.Security.Claims;
+using FabricModels = Microsoft.Fabric.Api.Lakehouse.Models;
 
 namespace FabricExplorerBackend.Services.Implements
 {
@@ -23,41 +24,66 @@ namespace FabricExplorerBackend.Services.Implements
     {
         public async Task<Result<PagedResponse<IEnumerable<Table>>>> GetAllTablesAsync(Guid connectionId, Guid lakehouseId, PaginationRequest? paginationRequest)
         {
-            try
-            {
-                var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
-                if (connection == null)
-                    return Result<PagedResponse<IEnumerable<Table>>>.Failure(Enums.ResultStatus.NotFound, "connection not found.");
+            //try
+            //{
+            //    var continuationToken = paginationRequest?.ContinuationToken;
+            //    var tables = new List<Table>();
+            //    var pageInfomartion = new PageInformation();
 
-                var context = await fabricContextFactory.CreateFabricContextAsync(connection);
-                if (context == null)
-                    return Result<PagedResponse<IEnumerable<Table>>>.Failure(Enums.ResultStatus.BadRequest, "failed to create fabric context.");
+            //    if (paginationRequest != null && !paginationRequest.IsValid())
+            //        return Result<PagedResponse<IEnumerable<Table>>>.Failure(ResultStatus.BadRequest, "Invalid pagination request");
 
-                var tables = await context.Client.Lakehouse.Tables.ListTablesAsync(connection.WorkspaceId, lakehouseId).ToListAsync();
+            //    var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
+            //    if (connection == null)
+            //        return Result<PagedResponse<IEnumerable<Table>>>.Failure(Enums.ResultStatus.NotFound, "connection not found.");
 
-                var pageInfomartion = new PageInformation();
-                if (paginationRequest != null)
-                {
-                    pageInfomartion.Page = paginationRequest.Page;
-                    pageInfomartion.PageSize = pageInfomartion.PageSize;
-                    pageInfomartion.HasNextPage = tables.Count > paginationRequest.Page * paginationRequest.PageSize;
+            //    var context = await fabricContextFactory.CreateFabricContextAsync(connection);
+            //    if (context == null)
+            //        return Result<PagedResponse<IEnumerable<Table>>>.Failure(Enums.ResultStatus.BadRequest, "failed to create fabric context.");
 
-                    tables = tables
-                        .Skip((paginationRequest.Page - 1) * paginationRequest.PageSize)
-                        .Take(paginationRequest.PageSize)
-                        .ToList();
+            //    if (continuationToken != null)
+            //    {
+            //        tables = await context.Client.Lakehouse.Tables.ListTablesAsync(
+            //            connection.WorkspaceId, 
+            //            lakehouseId, 
+            //            paginationRequest!.PageSize,
+            //            paginationRequest.ContinuationToken).ToListAsync();
 
-                    pageInfomartion.Total = tables.Count;
-                }
+            //        //pageInfomartion.HasNextPage;
+            //    }
+            //    else
+            //        tables = await context.Client.Lakehouse.Tables.ListTablesAsync(
+            //            connection.WorkspaceId,
+            //            lakehouseId,
+            //            paginationRequest!.PageSize,
+            //            paginationRequest.ContinuationToken).ToListAsync();
 
-                return Result<PagedResponse<IEnumerable<Table>>>
-                    .Success(new PagedResponse<IEnumerable<Table>>(tables, pageInfomartion));
-            }
-            catch (Exception ex)
-            {
-                return Result<PagedResponse<IEnumerable<Table>>>
-                    .Failure(Enums.ResultStatus.InternalError, ex.Message);
-            }
+            //    if (paginationRequest != null && paginationRequest.Page.HasValue)
+            //    {
+            //        pageInfomartion.Page = paginationRequest.Page;
+            //        pageInfomartion.PageSize = pageInfomartion.PageSize;
+            //        pageInfomartion.HasNextPage = tables.Count > paginationRequest.Page * paginationRequest.PageSize;
+
+            //        tables = tables
+            //            .Skip((int)(paginationRequest.Page - 1) * paginationRequest.PageSize)
+            //            .Take(paginationRequest.PageSize)
+            //            .ToList();
+
+            //        pageInfomartion.Total = tables.Count;
+            //    }
+            //    else
+            //        return Result<PagedResponse<IEnumerable<Table>>>.Failure(Enums.ResultStatus.BadRequest, "invalid pagination request.");
+
+            //    return Result<PagedResponse<IEnumerable<Table>>>
+            //        .Success(new PagedResponse<IEnumerable<Table>>(tables, pageInfomartion));
+            //}
+            //catch (Exception ex)
+            //{
+            //    return Result<PagedResponse<IEnumerable<Table>>>
+            //        .Failure(Enums.ResultStatus.InternalError, ex.Message);
+            //}
+
+            throw new NotImplementedException();
         }
 
         public async Task<Result<ConfirmationResponse>> LoadTableAsync(Guid connectionId, Guid lakehouseId, string tableName, LoadTableRequest request)
