@@ -7,6 +7,7 @@ namespace FabricExplorerBackend.Persistences
     {
         public DbSet<User> Users { get; set; }
         public DbSet<Connection> Connections { get; set; }
+        public DbSet<FabricOperation> Operations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -24,6 +25,10 @@ namespace FabricExplorerBackend.Persistences
             modelBuilder.Entity<Connection>(entity =>
             {
                 entity.HasKey(c => c.Id);
+            });
+            modelBuilder.Entity<FabricOperation>(entity =>
+            {
+                entity.HasKey(o => o.Id);
             });
 
             modelBuilder.SeedData();
