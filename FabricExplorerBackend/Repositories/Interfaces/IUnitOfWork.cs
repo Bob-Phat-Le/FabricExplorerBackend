@@ -11,5 +11,6 @@ namespace FabricExplorerBackend.Repositories.Interfaces
 
         IConnectionRepository ConnectionRepository { get; }
         IUserRepository UserRepository { get; }
+        IFabricOperationRepository FabricOperationRepository { get; }
     }
 }

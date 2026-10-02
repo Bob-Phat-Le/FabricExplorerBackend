@@ -34,7 +34,7 @@ namespace FabricExplorerBackend.Repositories.Implements
         {
             var query = context.Connections.AsQueryable();
             if (!trackChanges)
-                query.AsNoTracking();
+                query = query.AsNoTracking();
             return await query.Where(c => !c.IsDeleted).ToListAsync();
         }
 
@@ -42,7 +42,7 @@ namespace FabricExplorerBackend.Repositories.Implements
         {
             var query = context.Connections.AsQueryable();
             if (!trackChanges)
-                query.AsNoTracking();
+                query = query.AsNoTracking();
             return await query.FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
         }
 

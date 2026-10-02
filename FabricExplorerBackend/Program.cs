@@ -1,6 +1,7 @@
 using FabricExplorerBackend.Extensions;
 using FabricExplorerBackend.Mappers;
 using FabricExplorerBackend.Mappers.Connection;
+using FabricExplorerBackend.Mappers.FabricOperation;
 using FabricExplorerBackend.Persistences;
 using FabricExplorerBackend.Repositories.Implements;
 using FabricExplorerBackend.Repositories.Interfaces;
@@ -75,9 +76,11 @@ builder.Services.AddSingleton<ISecretProtector, SecretProtector>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IFabricOperationRepository, FabricOperationRepository>();
 
 // -- Mappers
 builder.Services.AddScoped<IConnectionMapper, ConnectionMapper>();
+builder.Services.AddScoped<IFabricOperationMapper, FabricOperationMapper>();
 
 // -- Services
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -86,6 +89,7 @@ builder.Services.AddScoped<IConnectionService, ConnectionService>();
 builder.Services.AddScoped<IClientFactory, ClientFactory>();
 builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<ILakehouseService, LakehouseService>();
+builder.Services.AddScoped<IFabricOperationService, FabricOperationService>();
 
 var app = builder.Build();
 await app.MigrateDatabaseAsync();

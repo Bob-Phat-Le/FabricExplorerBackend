@@ -6,9 +6,10 @@ using Microsoft.EntityFrameworkCore.Storage;
 namespace FabricExplorerBackend.Repositories.Implements
 {
     public class UnitOfWork(
+        IUserRepository userRepository,
         FabricExplorerDbContext context,
         IConnectionRepository connectionRepository,
-        IUserRepository userRepository) : IUnitOfWork
+        IFabricOperationRepository fabricOperationRepository) : IUnitOfWork
     {
 
         public async Task CommitTransaction()
@@ -38,5 +39,6 @@ namespace FabricExplorerBackend.Repositories.Implements
 
         public IConnectionRepository ConnectionRepository => connectionRepository;
         public IUserRepository UserRepository => userRepository;
+        public IFabricOperationRepository FabricOperationRepository => fabricOperationRepository;
     }
 }
