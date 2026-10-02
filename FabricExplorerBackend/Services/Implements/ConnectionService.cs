@@ -22,10 +22,13 @@ namespace FabricExplorerBackend.Services.Implements
         {
             try
             {
+                if (paginationRequest != null && !paginationRequest.IsValid())
+                    return Result<PagedResponse<IEnumerable<ConnectionResponse>>>.Failure(ResultStatus.BadRequest, "Invalid pagination request");
+
                 var connectionList = await unitOfWork.ConnectionRepository.GetAllAsync();
                 var pageInformation = new PageInformation();
 
-                if (paginationRequest != null)
+                if (paginationRequest != null && paginationRequest.Page.HasValue)
                 {
                     pageInformation.Page = paginationRequest.Page;
                     pageInformation.PageSize = paginationRequest.PageSize;
@@ -35,7 +38,7 @@ namespace FabricExplorerBackend.Services.Implements
                     else
                         pageInformation.HasNextPage = false;
 
-                    connectionList = connectionList.Skip((pageInformation.Page - 1) * pageInformation.PageSize).Take(pageInformation.PageSize);
+                    connectionList = connectionList.Skip((int)(pageInformation.Page - 1) * pageInformation.PageSize).Take(pageInformation.PageSize);
 
                     pageInformation.Total = connectionList.Count();
                 }
