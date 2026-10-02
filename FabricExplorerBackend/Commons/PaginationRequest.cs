@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace FabricExplorerBackend.Commons
+﻿namespace FabricExplorerBackend.Commons
 {
     public class PaginationRequest
     {

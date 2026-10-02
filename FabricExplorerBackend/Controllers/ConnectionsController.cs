@@ -1,13 +1,12 @@
 ﻿using FabricExplorerBackend.Commons;
-using FabricExplorerBackend.Mappers.Result;
-using FabricExplorerBackend.Models.Requests.Connection;
-using FabricExplorerBackend.Models.Responses;
-using FabricExplorerBackend.Models.Responses.Connection;
-using FabricExplorerBackend.Services.Interfaces;
+using FabricExplorerBackend.Commons.Models.Requests.Connection;
+using FabricExplorerBackend.Commons.Models.Responses;
+using FabricExplorerBackend.Commons.Models.Responses.Connection;
+using FabricExplorerBackend.Features.Connection;
+using FabricExplorerBackend.Features.Result;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace FabricExplorerBackend.Controllers
 {
@@ -18,7 +17,7 @@ namespace FabricExplorerBackend.Controllers
     public class ConnectionsController(IConnectionService connectionService) : ControllerBase
     {
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>>> GetAllConnections([FromQuery]PaginationRequest? paginationRequest)
+        public async Task<ActionResult<ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>>> GetAllConnections([FromQuery] PaginationRequest? paginationRequest)
         {
             var response = await connectionService.GetAllConnectionsAsync(paginationRequest);
             var statusCode = ResultMapper.ToHttpStatusCode(response.ResultStatus);
@@ -90,9 +89,9 @@ namespace FabricExplorerBackend.Controllers
         [HttpPost("{connectionId}/active")]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId)
         {
-            var response = await connectionService.ActiveConnection(connectionId); 
+            var response = await connectionService.ActiveConnection(connectionId);
             var statusCode = ResultMapper.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess) 
+            if (response.IsSuccess)
                 return Ok(new ApiResponse<ConfirmationResponse>(statusCode, response.Data));
             return StatusCode(statusCode, new ApiResponse<ConfirmationResponse>(statusCode, response.Errors));
         }

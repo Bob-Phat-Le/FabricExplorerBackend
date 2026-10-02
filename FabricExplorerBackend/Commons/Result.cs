@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Enums;
+﻿using FabricExplorerBackend.Domain.Enums;
 
 namespace FabricExplorerBackend.Commons
 {

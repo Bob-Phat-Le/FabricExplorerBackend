@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Persistences;
+﻿using FabricExplorerBackend.Infrastructures.Persistences;
 using Microsoft.EntityFrameworkCore;
 
 namespace FabricExplorerBackend.Extensions
