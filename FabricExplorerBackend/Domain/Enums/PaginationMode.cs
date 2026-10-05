@@ -3,6 +3,7 @@
     public enum PaginationMode
     {
         Offset,
-        Cursor
+        Cursor,
+        None
     }
 }

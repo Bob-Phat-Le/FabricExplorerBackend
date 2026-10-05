@@ -1,7 +1,9 @@
 ﻿using FabricExplorerBackend.Commons;
 using FabricExplorerBackend.Commons.Models.Responses;
+using FabricExplorerBackend.Commons.Models.Responses.FabricClient;
 using FabricExplorerBackend.Domain.Enums;
 using FabricExplorerBackend.Features.Fabric.Context;
+using FabricExplorerBackend.Features.Fabric.FabricRestClient;
 using FabricExplorerBackend.Features.Fabric.Operation;
 using FabricExplorerBackend.Features.Mappers.FabricOperation;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
@@ -12,73 +14,82 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
     public class LakehouseService(
         IUnitOfWork unitOfWork,
         IConfiguration configuration,
+        IFabricRestClientFactory fabricRestClientFactory,
         IHttpContextAccessor httpContext,
         IFabricContextFactory fabricContextFactory,
         IFabricOperationMapper fabricOperationMapper,
         IFabricOperationService fabricOperationService) : ILakehouseService
     {
-        public async Task<Result<PagedResponse<IEnumerable<Table>>>> GetAllTablesAsync(Guid connectionId, Guid lakehouseId, PaginationRequest? paginationRequest)
+        public async Task<Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>> GetAllTablesAsync(Guid connectionId, Guid lakehouseId, PaginationWithCursorRequest? paginationRequest)
         {
-            //try
-            //{
-            //    var continuationToken = paginationRequest?.ContinuationToken;
-            //    var tables = new List<Table>();
-            //    var pageInfomartion = new PageInformation();
+            try
+            {
+                var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
+                if (connection == null)
+                    return Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>.Failure(ResultStatus.NotFound, "Connection not found.");
 
-            //    if (paginationRequest != null && !paginationRequest.IsValid())
-            //        return Result<PagedResponse<IEnumerable<Table>>>.Failure(ResultStatus.BadRequest, "Invalid pagination request");
+                var client = fabricRestClientFactory.CreateFabricRestClient(connection);
 
-            //    var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
-            //    if (connection == null)
-            //        return Result<PagedResponse<IEnumerable<Table>>>.Failure(Enums.ResultStatus.NotFound, "connection not found.");
+                var baseUrl =
+                    $"{configuration.GetValue<string>("External:BaseFabricApiUrl")}" +
+                    $"/workspaces/{connection.WorkspaceId}" +
+                    $"/lakehouses/{lakehouseId}/tables" +
+                    $"?pageSize={paginationRequest!.PageSize}";
 
-            //    var context = await fabricContextFactory.CreateFabricContextAsync(connection);
-            //    if (context == null)
-            //        return Result<PagedResponse<IEnumerable<Table>>>.Failure(Enums.ResultStatus.BadRequest, "failed to create fabric context.");
+                FabricListApiResponse<FabricTableResponse>? response;
 
-            //    if (continuationToken != null)
-            //    {
-            //        tables = await context.Client.Lakehouse.Tables.ListTablesAsync(
-            //            connection.WorkspaceId, 
-            //            lakehouseId, 
-            //            paginationRequest!.PageSize,
-            //            paginationRequest.ContinuationToken).ToListAsync();
+                if (!string.IsNullOrWhiteSpace(paginationRequest?.ContinuationToken))
+                {
+                    var url =
+                        $"{baseUrl}" +
+                        $"&continuationToken={Uri.EscapeDataString(paginationRequest.ContinuationToken!)}";
+                    response = await client.GetAsync<FabricListApiResponse<FabricTableResponse>>(url);
+                }
+                else
+                    response = await client.GetAsync<FabricListApiResponse<FabricTableResponse>>(baseUrl);
 
-            //        //pageInfomartion.HasNextPage;
-            //    }
-            //    else
-            //        tables = await context.Client.Lakehouse.Tables.ListTablesAsync(
-            //            connection.WorkspaceId,
-            //            lakehouseId,
-            //            paginationRequest!.PageSize,
-            //            paginationRequest.ContinuationToken).ToListAsync();
+                var allTables = response?.Data ?? [];
+                IEnumerable<FabricTableResponse> tables = allTables!;
 
-            //    if (paginationRequest != null && paginationRequest.Page.HasValue)
-            //    {
-            //        pageInfomartion.Page = paginationRequest.Page;
-            //        pageInfomartion.PageSize = pageInfomartion.PageSize;
-            //        pageInfomartion.HasNextPage = tables.Count > paginationRequest.Page * paginationRequest.PageSize;
+                PageInformationWithCursor pageInformation;
+                if (!string.IsNullOrWhiteSpace(paginationRequest?.ContinuationToken))
+                {
+                    pageInformation = new PageInformationWithCursor
+                    {
+                        PageSize = paginationRequest.PageSize,
+                        NextToken = response!.ContinuationToken,
+                    };
+                }
+                else
+                {
+                    pageInformation = new PageInformationWithCursor
+                    {
+                        TotalItems = allTables.Count,
+                    };
+                }
 
-            //        tables = tables
-            //            .Skip((int)(paginationRequest.Page - 1) * paginationRequest.PageSize)
-            //            .Take(paginationRequest.PageSize)
-            //            .ToList();
+                var result = tables
+                    .Select(MapTable)
+                    .ToList();
 
-            //        pageInfomartion.Total = tables.Count;
-            //    }
-            //    else
-            //        return Result<PagedResponse<IEnumerable<Table>>>.Failure(Enums.ResultStatus.BadRequest, "invalid pagination request.");
+                return Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>.Success(
+                    new PagedResponseWithCursor<IEnumerable<TableResponse>>(result, pageInformation));
+            }
+            catch (Exception ex)
+            {
+                return Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>.Failure(ResultStatus.InternalError, ex.Message);
+            }
+        }
 
-            //    return Result<PagedResponse<IEnumerable<Table>>>
-            //        .Success(new PagedResponse<IEnumerable<Table>>(tables, pageInfomartion));
-            //}
-            //catch (Exception ex)
-            //{
-            //    return Result<PagedResponse<IEnumerable<Table>>>
-            //        .Failure(Enums.ResultStatus.InternalError, ex.Message);
-            //}
-
-            throw new NotImplementedException();
+        private static TableResponse MapTable(FabricTableResponse table)
+        {
+            return new TableResponse
+            {
+                Type = table.Type,
+                Name = table.Name,
+                Location = table.Location,
+                Format = table.Format
+            };
         }
 
         public async Task<Result<ConfirmationResponse>> LoadTableAsync(Guid connectionId, Guid lakehouseId, string tableName, LoadTableRequest request)

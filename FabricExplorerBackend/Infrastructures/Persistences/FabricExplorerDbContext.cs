@@ -25,6 +25,9 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
             modelBuilder.Entity<Connection>(entity =>
             {
                 entity.HasKey(c => c.Id);
+                entity
+                    .HasIndex(c => c.WorkspaceId)
+                    .IsUnique();
             });
             modelBuilder.Entity<FabricOperation>(entity =>
             {

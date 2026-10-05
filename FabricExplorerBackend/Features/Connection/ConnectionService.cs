@@ -1,4 +1,6 @@
-﻿using FabricExplorerBackend.Commons;
+﻿using Azure;
+using Azure.Identity;
+using FabricExplorerBackend.Commons;
 using FabricExplorerBackend.Commons.Models.Requests.Connection;
 using FabricExplorerBackend.Commons.Models.Responses;
 using FabricExplorerBackend.Commons.Models.Responses.Connection;
@@ -24,23 +26,18 @@ namespace FabricExplorerBackend.Features.Connection
                 if (paginationRequest != null && !paginationRequest.IsValid())
                     return Result<PagedResponse<IEnumerable<ConnectionResponse>>>.Failure(ResultStatus.BadRequest, "Invalid pagination request");
 
-                var connectionList = await unitOfWork.ConnectionRepository.GetAllAsync();
-                var pageInformation = new PageInformation();
+                var page = (int)paginationRequest?.Page!;
+                var pageSize = (int)paginationRequest?.PageSize!;
 
-                if (paginationRequest != null && paginationRequest.Page.HasValue)
+                var (connectionList, count) = await unitOfWork.ConnectionRepository.GetAllAsync((page - 1) * pageSize, pageSize);
+
+                var pageInformation = new PageInformation
                 {
-                    pageInformation.Page = paginationRequest.Page;
-                    pageInformation.PageSize = paginationRequest.PageSize;
-
-                    if (pageInformation.Page * pageInformation.PageSize < connectionList.Count())
-                        pageInformation.HasNextPage = true;
-                    else
-                        pageInformation.HasNextPage = false;
-
-                    connectionList = connectionList.Skip((int)(pageInformation.Page - 1) * pageInformation.PageSize).Take(pageInformation.PageSize);
-
-                    pageInformation.Total = connectionList.Count();
-                }
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalItems = connectionList.Count(),
+                    TotalPages = count % pageSize == 0 ? count / pageSize : count / pageSize + 1
+                };
 
                 IEnumerable<ConnectionResponse> connectionResponseList = connectionMapper.Map(connectionList);
 
@@ -121,6 +118,16 @@ namespace FabricExplorerBackend.Features.Connection
                 if (response != null && response.Value.Id == connection.WorkspaceId)
                     return Result<ConfirmationResponse>.Success(new ConfirmationResponse() { Message = "Connection check succeeded" });
                 return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "Failed to check connection");
+            }
+            catch (AuthenticationFailedException Ex)
+            {
+                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, Ex.Message);
+            }
+            catch (RequestFailedException ex) when (ex.Status == 404)
+            {
+                return Result<ConfirmationResponse>.Failure(
+                    ResultStatus.NotFound,
+                    "Workspace not found or you do not have access to it.");
             }
             catch (Exception Ex)
             {
