@@ -8,7 +8,8 @@ namespace FabricExplorerBackend.Features.Fabric.Context
     public class FabricContextFactory(
         ITokenService tokenService,
         IClientFactory clientFactory,
-        ISecretProtector secretProtector) : IFabricContextFactory
+        ISecretProtector secretProtector,
+        IConfiguration configuration) : IFabricContextFactory
     {
         private async Task<FabricContext> CreateFabricContextAsync(Guid tenantId, Guid connectionId, Guid workspaceId, string accessToken)
         {
@@ -23,7 +24,8 @@ namespace FabricExplorerBackend.Features.Fabric.Context
 
         public async Task<FabricContext?> CreateFabricContextAsync(Domain.Entities.Connection connection)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection);
+            var scope = configuration.GetValue<string>("Scopes:api.fabric");
+            var token = await tokenService.GetOrCreateTokenAsync(connection, scope!);
 
             var context = await CreateFabricContextAsync(connection.TenantId, connection.Id, connection.WorkspaceId, token);
 
