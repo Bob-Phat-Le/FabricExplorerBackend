@@ -29,12 +29,18 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             throw new NotImplementedException();
         }
 
-        public async Task<IEnumerable<Connection>> GetAllAsync(bool trackChanges = false)
+        public async Task<(IEnumerable<Connection>, int)> GetAllAsync(int skip, int take, bool trackChanges = false)
         {
             var query = context.Connections.AsQueryable();
+            var count = query.Count();
             if (!trackChanges)
                 query = query.AsNoTracking();
-            return await query.Where(c => !c.IsDeleted).ToListAsync();
+            if (skip > 0)
+                query = query.Skip(skip);
+            if (take > 0)
+                query = query.Take(take);
+            var result = await query.Where(c => !c.IsDeleted).ToListAsync();
+            return (result, count);
         }
 
         public async Task<Connection?> GetByIdAsync(Guid id, bool trackChanges = false)

@@ -8,7 +8,7 @@
 
         public bool IsValid()
         {
-            return (Page.HasValue && ContinuationToken == null) || (Page == null && ContinuationToken != null);
+            return (Page.HasValue && Page > 0 && ContinuationToken == null) || (Page == null && ContinuationToken != null);
         }
     }
 }

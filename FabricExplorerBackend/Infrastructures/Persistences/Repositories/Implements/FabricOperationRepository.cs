@@ -22,7 +22,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             throw new NotImplementedException();
         }
 
-        public Task<IEnumerable<FabricOperation>> GetAllAsync(bool trackChanges = false)
+        public Task<(IEnumerable<FabricOperation>, int)> GetAllAsync(int skip, int take, bool trackChanges = false)
         {
             throw new NotImplementedException();
         }

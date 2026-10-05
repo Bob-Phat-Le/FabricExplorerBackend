@@ -2,7 +2,8 @@
 {
     public interface ITokenService
     {
-        Task<string> CreateTokenAsync(Guid tenantId, Guid clientId, Guid workspaceId, string secret);
-        Task<string> GetTokenAsync(Guid tenantId, Guid clientId, Guid workspaceId);
+        Task<string> CreateTokenAsync(Domain.Entities.Connection connection);
+        Task<string> GetTokenAsync(Domain.Entities.Connection connection);
+        Task<string> GetOrCreateTokenAsync(Domain.Entities.Connection connection);
     }
 }

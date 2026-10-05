@@ -1,5 +1,6 @@
 ﻿using FabricExplorerBackend.Commons;
 using FabricExplorerBackend.Commons.Models.Responses;
+using FabricExplorerBackend.Commons.Models.Responses.FabricClient;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
 using FabricExplorerBackend.Features.Result;
 using Microsoft.AspNetCore.Mvc;
@@ -13,16 +14,16 @@ namespace FabricExplorerBackend.Controllers
     {
 
         [HttpGet("{lakehouseId}/tables")]
-        public async Task<ActionResult<ApiResponse<PagedResponse<IEnumerable<Table>>>>> GetAllTables(
+        public async Task<ActionResult<ApiResponse<PagedResponseWithCursor<IEnumerable<TableResponse>>>>> GetAllTables(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
             Guid lakehouseId,
-            [FromQuery] PaginationRequest? paginationRequest)
+            [FromQuery] PaginationWithCursorRequest? paginationRequest)
         {
             var response = await lakehouseService.GetAllTablesAsync(connectionId, lakehouseId, paginationRequest);
             var statusCode = ResultMapper.ToHttpStatusCode(response.ResultStatus);
             if (response.IsSuccess)
-                return Ok(new ApiResponse<PagedResponse<IEnumerable<Table>>>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<PagedResponse<IEnumerable<Table>>>(statusCode, response.Errors));
+                return Ok(new ApiResponse<PagedResponseWithCursor<IEnumerable<TableResponse>>>(statusCode, response.Data));
+            return StatusCode(statusCode, new ApiResponse<PagedResponseWithCursor<IEnumerable<TableResponse>>>(statusCode, response.Errors));
         }
 
         [HttpPost("{lakehouseId}/tables/{tableName}/load")]

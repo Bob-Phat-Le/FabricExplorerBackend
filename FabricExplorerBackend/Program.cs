@@ -3,6 +3,7 @@ using FabricExplorerBackend.Features.Cache;
 using FabricExplorerBackend.Features.Connection;
 using FabricExplorerBackend.Features.Fabric.Client;
 using FabricExplorerBackend.Features.Fabric.Context;
+using FabricExplorerBackend.Features.Fabric.FabricRestClient;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
 using FabricExplorerBackend.Features.Fabric.Operation;
 using FabricExplorerBackend.Features.Mappers.FabricOperation;
@@ -62,7 +63,11 @@ builder.Services.AddDbContext<FabricExplorerDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("FabricExplorerDatabase")));
 builder.Services.AddSingleton<IConnectionMultiplexer>(
     ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisCache")!));
+
+// -- Http
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
+
 builder.Services
     .AddDataProtection()
     .SetApplicationName("FabricExplorerBackend")
@@ -94,6 +99,8 @@ builder.Services.AddScoped<IClientFactory, ClientFactory>();
 builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<ILakehouseService, LakehouseService>();
 builder.Services.AddScoped<IFabricOperationService, FabricOperationService>();
+//builder.Services.AddScoped<IFabricRestClient, FabricRestClient>();
+builder.Services.AddScoped<IFabricRestClientFactory, FabricRestClientFactory>();
 
 var app = builder.Build();
 await app.MigrateDatabaseAsync();
