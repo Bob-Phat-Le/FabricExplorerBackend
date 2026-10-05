@@ -16,8 +16,8 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
         {
             if (entity is ISoftDeletable softDeletableEntity)
             {
-                entity.IsDeleted = true;
-                entity.DeletedAt = DateTimeOffset.UtcNow;
+                softDeletableEntity.IsDeleted = true;
+                softDeletableEntity.DeletedAt = DateTimeOffset.UtcNow;
                 context.Connections.Update(entity);
             }
             else

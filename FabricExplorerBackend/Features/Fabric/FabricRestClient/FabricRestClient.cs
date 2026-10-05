@@ -4,12 +4,15 @@ namespace FabricExplorerBackend.Features.Fabric.FabricRestClient
 {
     public class FabricRestClient(
         HttpClient httpClient,
+        IConfiguration configuration,
         ITokenService tokenService,
         Domain.Entities.Connection connection) : IFabricRestClient
     {
+        private string scope = configuration.GetValue<string>("Scopes:api.fabric")!;
+
         public async Task<TResponse?> GetAsync<TResponse>(string endpoint, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection);
+            var token = await tokenService.GetOrCreateTokenAsync(connection, scope);
 
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
@@ -23,7 +26,7 @@ namespace FabricExplorerBackend.Features.Fabric.FabricRestClient
 
         public async Task<TResponse?> PostAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection);
+            var token = await tokenService.GetOrCreateTokenAsync(connection, scope);
 
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
@@ -37,7 +40,7 @@ namespace FabricExplorerBackend.Features.Fabric.FabricRestClient
 
         public async Task<TResponse?> PatchAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection);
+            var token = await tokenService.GetOrCreateTokenAsync(connection, scope);
 
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
@@ -51,7 +54,7 @@ namespace FabricExplorerBackend.Features.Fabric.FabricRestClient
 
         public async Task DeleteAsync(string endpoint, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection);
+            var token = await tokenService.GetOrCreateTokenAsync(connection, scope);
 
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
