@@ -1,7 +1,8 @@
-﻿using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
+﻿using FabricExplorerBackend.Infrastructures.Persistences;
+using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements
+namespace FabricExplorerBackend.Infrastructure.Repositories
 {
     public class UnitOfWork(
         IUserRepository userRepository,

@@ -8,6 +8,7 @@ using FabricExplorerBackend.Domain.Enums;
 using FabricExplorerBackend.Features.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Securities;
+using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 
 namespace FabricExplorerBackend.Features.Connection
@@ -187,7 +188,7 @@ namespace FabricExplorerBackend.Features.Connection
         {
             try
             {
-                var userId = httpContext?.HttpContext?.User.FindFirstValue("oid");
+                var userId = httpContext?.HttpContext?.User.FindFirst("oid")?.Value;
                 if (string.IsNullOrEmpty(userId))
                     return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "User id not found");
 
@@ -218,7 +219,7 @@ namespace FabricExplorerBackend.Features.Connection
         {
             try
             {
-                var userId = httpContext?.HttpContext?.User.FindFirstValue("oid");
+                var userId = httpContext?.HttpContext?.User.FindFirst("oid")?.Value;
                 if (string.IsNullOrEmpty(userId))
                     return Result<ConnectionResponse>.Failure(ResultStatus.NotFound, "User id not found");
 

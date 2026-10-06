@@ -1,9 +1,10 @@
 ﻿using FabricExplorerBackend.Domain.Entities;
 using FabricExplorerBackend.Domain.Enums;
+using FabricExplorerBackend.Infrastructures.Persistences;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements
+namespace FabricExplorerBackend.Infrastructure.Repositories
 {
     public class FabricOperationRepository(FabricExplorerDbContext context) : IFabricOperationRepository
     {

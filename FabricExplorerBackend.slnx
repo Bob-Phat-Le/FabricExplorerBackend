@@ -1,2 +1,8 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FabricExplorerBackend.Api/FabricExplorerBackend.Api.csproj" />
+    <Project Path="src/FabricExplorerBackend.Application/FabricExplorerBackend.Application.csproj" />
+    <Project Path="src/FabricExplorerBackend.Domain/FabricExplorerBackend.Domain.csproj" />
+    <Project Path="src/FabricExplorerBackend.Infrastructure/FabricExplorerBackend.Infrastructure.csproj" />
+  </Folder>
 </Solution>
