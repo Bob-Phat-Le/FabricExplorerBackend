@@ -1,6 +1,6 @@
 ﻿using FabricExplorerBackend.Domain.Enums;
 
-namespace FabricExplorerBackend.Commons
+namespace FabricExplorerBackend.Commons.Models.Responses.Fabric.Paginations
 {
     public class PageInformation
     {

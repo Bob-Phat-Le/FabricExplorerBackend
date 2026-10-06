@@ -1,4 +1,4 @@
-﻿namespace FabricExplorerBackend.Commons
+﻿namespace FabricExplorerBackend.Commons.Models.Responses.Fabric.Paginations
 {
     public class PagedResponseWithCursor<T>
     {

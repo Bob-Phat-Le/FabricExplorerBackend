@@ -1,7 +1,6 @@
 ﻿using FabricExplorerBackend.Commons;
 using FabricExplorerBackend.Commons.Models.Requests.FabricOperation;
-using FabricExplorerBackend.Commons.Models.Responses;
-using FabricExplorerBackend.Features.Mappers.FabricOperation;
+using FabricExplorerBackend.Commons.Models.Responses.Fabric;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 
 namespace FabricExplorerBackend.Features.Fabric.Operation

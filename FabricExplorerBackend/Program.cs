@@ -6,7 +6,6 @@ using FabricExplorerBackend.Features.Fabric.Context;
 using FabricExplorerBackend.Features.Fabric.FabricRestClient;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
 using FabricExplorerBackend.Features.Fabric.Operation;
-using FabricExplorerBackend.Features.Mappers.FabricOperation;
 using FabricExplorerBackend.Features.Token;
 using FabricExplorerBackend.Infrastructures.Persistences;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements;
@@ -80,27 +79,9 @@ builder.Services.AddSingleton<IDataProtector>(sp =>
     sp.GetRequiredService<IDataProtectionProvider>()
       .CreateProtector("FabricExplorer.Secrets"));
 
-// -- Repositories
-builder.Services.AddSingleton<ISecretProtector, SecretProtector>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IConnectionRepository, ConnectionRepository>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IFabricOperationRepository, FabricOperationRepository>();
-
-// -- Mappers
-builder.Services.AddScoped<IConnectionMapper, ConnectionMapper>();
-builder.Services.AddScoped<IFabricOperationMapper, FabricOperationMapper>();
-
-// -- Services
-builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<IFabricContextFactory, FabricContextFactory>();
-builder.Services.AddScoped<IConnectionService, ConnectionService>();
-builder.Services.AddScoped<IClientFactory, ClientFactory>();
-builder.Services.AddScoped<ICacheService, CacheService>();
-builder.Services.AddScoped<ILakehouseService, LakehouseService>();
-builder.Services.AddScoped<IFabricOperationService, FabricOperationService>();
-//builder.Services.AddScoped<IFabricRestClient, FabricRestClient>();
-builder.Services.AddScoped<IFabricRestClientFactory, FabricRestClientFactory>();
+builder.Services.AddRepositories();
+builder.Services.AddServices();
+builder.Services.AddMappers();
 
 var app = builder.Build();
 await app.MigrateDatabaseAsync();

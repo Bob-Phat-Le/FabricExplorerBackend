@@ -1,6 +1,8 @@
 ﻿using FabricExplorerBackend.Commons;
-using FabricExplorerBackend.Commons.Models.Responses;
-using FabricExplorerBackend.Commons.Models.Responses.FabricClient;
+using FabricExplorerBackend.Commons.Models.Requests.Paginations;
+using FabricExplorerBackend.Commons.Models.Responses.Fabric;
+using FabricExplorerBackend.Commons.Models.Responses.Fabric.FabricClient;
+using FabricExplorerBackend.Commons.Models.Responses.Fabric.Paginations;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
 using FabricExplorerBackend.Features.Result;
 using Microsoft.AspNetCore.Mvc;

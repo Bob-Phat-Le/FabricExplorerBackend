@@ -1,4 +1,4 @@
-﻿namespace FabricExplorerBackend.Commons.Models.Responses.FabricClient
+﻿namespace FabricExplorerBackend.Commons.Models.Responses.Fabric.FabricClient
 {
     public class FabricTableResponse
     {

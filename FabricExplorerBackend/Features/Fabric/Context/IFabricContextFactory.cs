@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Commons.Models.Responses;
+﻿using FabricExplorerBackend.Commons.Models.Responses.Fabric;
 
 namespace FabricExplorerBackend.Features.Fabric.Context
 {

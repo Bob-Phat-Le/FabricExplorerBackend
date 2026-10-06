@@ -1,6 +1,6 @@
 ﻿using FabricExplorerBackend.Commons.Models.Requests.FabricOperation;
 
-namespace FabricExplorerBackend.Features.Mappers.FabricOperation
+namespace FabricExplorerBackend.Features.Fabric.Operation
 {
     public interface IFabricOperationMapper
     {
