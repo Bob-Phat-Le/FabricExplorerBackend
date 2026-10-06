@@ -1,6 +1,6 @@
 ﻿using Azure;
 using FabricExplorerBackend.Commons.Models.Requests.FabricOperation;
-using FabricExplorerBackend.Features.Mappers.FabricOperation;
+using FabricExplorerBackend.Features.Fabric.Operation;
 using Microsoft.Fabric.Api.Utils;
 using Riok.Mapperly.Abstractions;
 

@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Commons.Models.Responses;
+﻿using FabricExplorerBackend.Commons.Models.Responses.Fabric;
 using FabricExplorerBackend.Features.Fabric.Client;
 using FabricExplorerBackend.Features.Token;
 using FabricExplorerBackend.Infrastructures.Securities;

@@ -19,7 +19,7 @@ namespace FabricExplorerBackend.Features.Token
 
             var token = await credential.GetTokenAsync(new TokenRequestContext(new[] { scope }));
 
-            var key = cacheService.CreateCacheKey(connection.TenantId.ToString(), connection.ClientId.ToString(), connection.WorkspaceId.ToString());
+            var key = CreateKey(connection, scope);
             await cacheService.SetValueAsync(key, token.Token, token.ExpiresOn - DateTimeOffset.UtcNow);
 
             return token.Token;
@@ -27,18 +27,27 @@ namespace FabricExplorerBackend.Features.Token
 
         public async Task<string> GetOrCreateTokenAsync(Domain.Entities.Connection connection, string scope)
         {
-            var key = cacheService.CreateCacheKey(connection.TenantId.ToString(), connection.ClientId.ToString(), connection.WorkspaceId.ToString());
+            var key = CreateKey(connection, scope);
             var result = await cacheService.GetValueAsync(key);
             if (string.IsNullOrEmpty(result?.ToString()))
                 return await CreateTokenAsync(connection, scope);
             return result.ToString()!;
         }
 
-        public async Task<string> GetTokenAsync(Domain.Entities.Connection connection)
+        public async Task<string> GetTokenAsync(Domain.Entities.Connection connection, string scope)
         {
-            var key = cacheService.CreateCacheKey(connection.TenantId.ToString(), connection.ClientId.ToString(), connection.WorkspaceId.ToString());
+            var key = CreateKey(connection, scope);
             var result = await cacheService.GetValueAsync(key);
             return result?.ToString() ?? string.Empty;
         }
+
+        // PRIVATE AREA
+
+        private string CreateKey(Domain.Entities.Connection connection, string scope)
+            => cacheService.CreateCacheKey(
+                connection.TenantId.ToString(),
+                connection.ClientId.ToString(),
+                connection.WorkspaceId.ToString(),
+                scope);
     }
 }

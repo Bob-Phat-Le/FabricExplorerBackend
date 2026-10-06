@@ -2,8 +2,10 @@
 using Azure.Identity;
 using FabricExplorerBackend.Commons;
 using FabricExplorerBackend.Commons.Models.Requests.Connection;
-using FabricExplorerBackend.Commons.Models.Responses;
+using FabricExplorerBackend.Commons.Models.Requests.Paginations;
 using FabricExplorerBackend.Commons.Models.Responses.Connection;
+using FabricExplorerBackend.Commons.Models.Responses.Fabric;
+using FabricExplorerBackend.Commons.Models.Responses.Fabric.Paginations;
 using FabricExplorerBackend.Domain.Enums;
 using FabricExplorerBackend.Features.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;

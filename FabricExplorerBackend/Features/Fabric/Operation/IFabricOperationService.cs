@@ -1,6 +1,6 @@
 ﻿using FabricExplorerBackend.Commons;
 using FabricExplorerBackend.Commons.Models.Requests.FabricOperation;
-using FabricExplorerBackend.Commons.Models.Responses;
+using FabricExplorerBackend.Commons.Models.Responses.Fabric;
 
 namespace FabricExplorerBackend.Features.Fabric.Operation
 {

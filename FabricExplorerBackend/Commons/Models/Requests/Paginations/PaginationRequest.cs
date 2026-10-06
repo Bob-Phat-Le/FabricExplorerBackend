@@ -1,4 +1,4 @@
-﻿namespace FabricExplorerBackend.Commons
+﻿namespace FabricExplorerBackend.Commons.Models.Requests.Paginations
 {
     public class PaginationRequest
     {

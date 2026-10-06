@@ -1,4 +1,4 @@
-﻿namespace FabricExplorerBackend.Commons.Models.Responses
+﻿namespace FabricExplorerBackend.Commons.Models.Responses.Fabric
 {
     public class FabricListApiResponse<Type>
     {

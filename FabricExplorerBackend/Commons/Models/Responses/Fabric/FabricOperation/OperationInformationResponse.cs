@@ -1,4 +1,4 @@
-﻿namespace FabricExplorerBackend.Commons.Models.Responses.FabricOperation
+﻿namespace FabricExplorerBackend.Commons.Models.Responses.Fabric.FabricOperation
 {
     public class OperationInformationResponse
     {
