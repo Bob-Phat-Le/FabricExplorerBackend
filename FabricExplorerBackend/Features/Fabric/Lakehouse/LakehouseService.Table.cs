@@ -26,17 +26,17 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
                     $"/lakehouses/{lakehouseId}/tables" +
                     $"?pageSize={paginationRequest!.PageSize}";
 
-                FabricListApiResponse<FabricTableResponse>? response;
+                FabricValueListResponse<FabricTableResponse>? response;
 
                 if (!string.IsNullOrWhiteSpace(paginationRequest?.ContinuationToken))
                 {
                     var url =
                         $"{baseUrl}" +
                         $"&continuationToken={Uri.EscapeDataString(paginationRequest.ContinuationToken!)}";
-                    response = await client.GetAsync<FabricListApiResponse<FabricTableResponse>>(url);
+                    response = await client.GetAsync<FabricValueListResponse<FabricTableResponse>>(url);
                 }
                 else
-                    response = await client.GetAsync<FabricListApiResponse<FabricTableResponse>>(baseUrl);
+                    response = await client.GetAsync<FabricValueListResponse<FabricTableResponse>>(baseUrl);
 
                 var allTables = response?.Data ?? [];
                 IEnumerable<FabricTableResponse> tables = allTables!;

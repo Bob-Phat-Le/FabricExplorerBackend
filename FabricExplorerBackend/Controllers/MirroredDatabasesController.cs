@@ -5,7 +5,7 @@ namespace FabricExplorerBackend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class WarehouseController : ControllerBase
+    public class MirroredDatabasesController : ControllerBase
     {
     }
 }

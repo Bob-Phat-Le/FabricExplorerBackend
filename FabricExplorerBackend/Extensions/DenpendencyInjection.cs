@@ -5,6 +5,8 @@ using FabricExplorerBackend.Features.Fabric.Context;
 using FabricExplorerBackend.Features.Fabric.FabricRestClient;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
 using FabricExplorerBackend.Features.Fabric.Operation;
+using FabricExplorerBackend.Features.Fabric.Warehouse;
+using FabricExplorerBackend.Features.Sql;
 using FabricExplorerBackend.Features.Token;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
@@ -28,6 +30,8 @@ namespace FabricExplorerBackend.Extensions
             //serviceCollection.AddScoped<IFabricRestClient, FabricRestClient>();
             serviceCollection.AddScoped<IFabricRestClientFactory, FabricRestClientFactory>();
             serviceCollection.AddScoped<ILakehouseTableStatsService, LakehouseTableStatsService>();
+            serviceCollection.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
+            serviceCollection.AddScoped<ISqlQueryService, SqlQueryService>();
 
             return serviceCollection;
         }
@@ -39,9 +43,10 @@ namespace FabricExplorerBackend.Extensions
             serviceCollection.AddScoped<IConnectionRepository, ConnectionRepository>();
             serviceCollection.AddScoped<IUserRepository, UserRepository>();
             serviceCollection.AddScoped<IFabricOperationRepository, FabricOperationRepository>();
+            serviceCollection.AddScoped<IWarehouseService, WarehouseService>();
 
             return serviceCollection;
-        } 
+        }
 
         public static IServiceCollection AddMappers(this IServiceCollection serviceCollection)
         {
