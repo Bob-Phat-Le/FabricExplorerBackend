@@ -1,21 +1,19 @@
-﻿using FabricExplorerBackend.Commons.Models.Responses.Fabric.FabricClient;
+﻿using Azure.Core;
+using Azure.Storage.Files.DataLake;
+using FabricExplorerBackend.Commons.Models.Responses.Fabric.FabricClient;
 using FabricExplorerBackend.Domain.Enums;
 using FabricExplorerBackend.Features.Fabric.FabricRestClient;
+using FabricExplorerBackend.Features.Sql;
 using FabricExplorerBackend.Features.Token;
 using System.Collections.Concurrent;
-using Azure.Storage.Files.DataLake;
-using Microsoft.Data.SqlClient;
-using Azure.Core;
-using FabricExplorerBackend.Features.Fabric.Context;
-using Microsoft.Fabric.Api.Lakehouse.Models;
 
 namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 {
     public sealed class LakehouseTableStatsService(
         IConfiguration configuration,
-        IFabricContextFactory fabricContextFactory,
         IFabricRestClientFactory fabricRestClientFactory,
-        ITokenService tokenService) : ILakehouseTableStatsService
+        ITokenService tokenService,
+        ISqlQueryService sqlQueryService) : ILakehouseTableStatsService
     {
         private const string OneLakeUrl = "https://onelake.dfs.fabric.microsoft.com";
 
@@ -40,60 +38,21 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 
             try
             {
-                //var lakehouse = await GetLakehouseAsync(connection, lakehouseId, cancellationToken);
+                var lakehouse = await GetLakehouseAsync(connection, lakehouseId, cancellationToken);
 
-                //var sqlEndpoint = lakehouse?.Properties?.SqlEndpointProperties?.ConnectionString;
-                //if (lakehouse == null || string.IsNullOrWhiteSpace(sqlEndpoint))
-                //    throw new InvalidOperationException("SQL analytics endpoint chưa sẵn sàng.");
-
-                //var provisioning = lakehouse.Properties?.SqlEndpointProperties?.ProvisioningStatus;
-                //if (!string.IsNullOrEmpty(provisioning) && !provisioning.Equals("Success", StringComparison.OrdinalIgnoreCase))
-                //    throw new InvalidOperationException($"SQL analytics endpoint đang ở trạng thái '{provisioning}'.");
-
-                //// Mỗi dịch vụ cần một token với audience riêng (TokenService cache theo scope)
-                //var storageScope = configuration.GetValue("Scopes:storage", "https://storage.azure.com/.default")!;
-                //var sqlScope = configuration.GetValue("Scopes:sql", "https://database.windows.net/.default")!;
-                //var storageToken = await tokenService.GetOrCreateTokenAsync(connection, storageScope);
-                //var sqlToken = await tokenService.GetOrCreateTokenAsync(connection, sqlScope);
-
-                //var fileSystem = new DataLakeServiceClient(new Uri(OneLakeUrl), new StaticTokenCredential(storageToken))
-                //    .GetFileSystemClient(connection.WorkspaceId.ToString());
-
-                //var schema = configuration.GetValue("Fabric:DefaultSqlSchema", "dbo")!;
-                //var maxParallelism = configuration.GetValue("Fabric:TableStatsMaxParallelism", 4);
-                //using var gate = new SemaphoreSlim(maxParallelism);
-
-                //await Task.WhenAll(deltaTables.Select(async name =>
-                //{
-                //    await gate.WaitAsync(cancellationToken);
-                //    try
-                //    {
-                //        result[name] = await GetTableStatsAsync(
-                //            fileSystem, lakehouseId, sqlEndpoint, lakehouse.DisplayName, schema, sqlToken, name, cancellationToken);
-                //    }
-                //    finally
-                //    {
-                //        gate.Release();
-                //    }
-                //}));
-
-                var context = await fabricContextFactory.CreateFabricContextAsync(connection);
-                var response = await context!.Client.Lakehouse.Items.GetLakehouseAsync(connection.WorkspaceId, lakehouseId, cancellationToken);
-                var lakehouse = response.Value;
-
-                var sqlEndpoint = lakehouse?.Properties?.SqlEndpointProperties?.ConnectionString;
-                if (lakehouse == null || string.IsNullOrWhiteSpace(sqlEndpoint))
+                var sqlHost = lakehouse?.Properties?.SqlEndpointProperties?.ConnectionString;
+                if (lakehouse == null || string.IsNullOrWhiteSpace(sqlHost))
                     throw new InvalidOperationException("SQL analytics endpoint chưa sẵn sàng.");
 
                 var provisioning = lakehouse.Properties?.SqlEndpointProperties?.ProvisioningStatus;
-                if (provisioning.HasValue && !provisioning.Value.Equals(SqlEndpointProvisioningStatus.Success))
+                if (!string.IsNullOrEmpty(provisioning) && !provisioning.Equals("Success", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException($"SQL analytics endpoint đang ở trạng thái '{provisioning}'.");
 
-                // Mỗi dịch vụ cần một token với audience riêng (TokenService cache theo scope)
+                // Token OneLake lấy ở đây; token SQL do SqlConnectionFactory tự lấy cho từng truy vấn
                 var storageScope = configuration.GetValue("Scopes:storage", "https://storage.azure.com/.default")!;
-                var sqlScope = configuration.GetValue("Scopes:sql", "https://database.windows.net/.default")!;
                 var storageToken = await tokenService.GetOrCreateTokenAsync(connection, storageScope);
-                var sqlToken = await tokenService.GetOrCreateTokenAsync(connection, sqlScope);
+
+                var sqlEndpoint = new SqlEndpoint(sqlHost, lakehouse.DisplayName);
 
                 var fileSystem = new DataLakeServiceClient(new Uri(OneLakeUrl), new StaticTokenCredential(storageToken))
                     .GetFileSystemClient(connection.WorkspaceId.ToString());
@@ -108,7 +67,7 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
                     try
                     {
                         result[name] = await GetTableStatsAsync(
-                            fileSystem, lakehouseId, sqlEndpoint, lakehouse.DisplayName, schema, sqlToken, name, cancellationToken);
+                            fileSystem, connection, lakehouseId, sqlEndpoint, schema, name, cancellationToken);
                     }
                     finally
                     {
@@ -138,11 +97,10 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 
         private async Task<TableStats> GetTableStatsAsync(
             DataLakeFileSystemClient fileSystem,
+            Domain.Entities.Connection connection,
             Guid lakehouseId,
-            string sqlEndpoint,
-            string database,
+            SqlEndpoint sqlEndpoint,
             string schema,
-            string sqlToken,
             string table,
             CancellationToken ct)
         {
@@ -152,7 +110,7 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 
             // Chạy song song 2 nguồn; lỗi nguồn này không làm mất kết quả nguồn kia
             var lastModifiedTask = GetLastCommitTimeAsync(fileSystem, lakehouseId, table, ct);
-            var rowsTask = CountRowsAsync(sqlEndpoint, database, schema, sqlToken, table, ct);
+            var rowsTask = CountRowsAsync(connection, sqlEndpoint, schema, table, ct);
 
             try { lastModified = await lastModifiedTask; }
             catch (Exception ex) { errors.Add($"LastModified: {ex.Message}"); }
@@ -172,7 +130,11 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
             var directory = $"{lakehouseId}/Tables/{table}/_delta_log";
             DateTimeOffset? latest = null;
 
-            await foreach (var path in fileSystem.GetPathsAsync(path: directory, recursive: false, userPrincipalName: false, cancellationToken: ct))
+            await foreach (var path in fileSystem.GetPathsAsync(
+                               path: directory,
+                               recursive: false,
+                               userPrincipalName: false,
+                               cancellationToken: ct))
             {
                 if (path.IsDirectory == true || !path.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                     continue;
@@ -184,25 +146,20 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
             return latest;
         }
 
-        private static async Task<long?> CountRowsAsync(
-            string sqlEndpoint, string database, string schema, string accessToken, string table, CancellationToken ct)
+        // Phải là async: SqlIdentifier.Quote có thể ném ArgumentException, và lỗi đó cần nằm trong Task
+        // để được bắt cùng các lỗi khác ở GetTableStatsAsync thay vì ném ra ngay khi gọi hàm
+        private async Task<long?> CountRowsAsync(
+            Domain.Entities.Connection connection,
+            SqlEndpoint sqlEndpoint,
+            string schema,
+            string table,
+            CancellationToken ct)
         {
-            var connectionString = $"Server={sqlEndpoint};Database={database};Encrypt=True;Connect Timeout=30";
-
-            await using var sqlConnection = new SqlConnection(connectionString) { AccessToken = accessToken };
-            await sqlConnection.OpenAsync(ct);
-
-            var safeSchema = schema.Replace("]", "]]");
-            var safeTable = table.Replace("]", "]]");
-
-            await using var command = new SqlCommand(
-                $"SELECT COUNT_BIG(*) FROM [{safeSchema}].[{safeTable}]", sqlConnection)
-            {
-                CommandTimeout = 60
-            };
-
-            var scalar = await command.ExecuteScalarAsync(ct);
-            return scalar is null or DBNull ? null : Convert.ToInt64(scalar);
+            return await sqlQueryService.ExecuteScalarAsync<long?>(
+                connection,
+                sqlEndpoint,
+                $"SELECT COUNT_BIG(*) FROM {SqlIdentifier.Quote(schema, table)}",
+                cancellationToken: ct);
         }
 
         private (TableStatus Status, string? Message) Evaluate(
