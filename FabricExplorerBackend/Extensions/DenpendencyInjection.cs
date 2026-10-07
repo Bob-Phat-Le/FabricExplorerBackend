@@ -6,6 +6,7 @@ using FabricExplorerBackend.Features.Fabric.FabricRestClient;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
 using FabricExplorerBackend.Features.Fabric.Operation;
 using FabricExplorerBackend.Features.Token;
+using FabricExplorerBackend.Helpers;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Securities;
@@ -28,6 +29,7 @@ namespace FabricExplorerBackend.Extensions
             //serviceCollection.AddScoped<IFabricRestClient, FabricRestClient>();
             serviceCollection.AddScoped<IFabricRestClientFactory, FabricRestClientFactory>();
             serviceCollection.AddScoped<ILakehouseTableStatsService, LakehouseTableStatsService>();
+            serviceCollection.AddScoped<IFabricLroHelper, FabricLroHelper>();
 
             return serviceCollection;
         }

@@ -2,6 +2,7 @@
 using FabricExplorerBackend.Commons.Models.Requests.Paginations;
 using FabricExplorerBackend.Commons.Models.Responses.Fabric;
 using FabricExplorerBackend.Commons.Models.Responses.Fabric.FabricClient;
+using FabricExplorerBackend.Commons.Models.Responses.Fabric.FabricOperation;
 using FabricExplorerBackend.Commons.Models.Responses.Fabric.Paginations;
 using FabricExplorerBackend.Domain.Enums;
 using Microsoft.Fabric.Api.Lakehouse.Models;
@@ -85,36 +86,37 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
             }
         }
 
-        public async Task<Result<ConfirmationResponse>> LoadTableAsync(Guid connectionId, Guid lakehouseId, string tableName, LoadTableRequest request)
+        public async Task<Result<FabricOperationResponse>> LoadTableAsync(Guid connectionId, Guid lakehouseId, string tableName, LoadTableRequest request)
         {
-            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
-            if (connection == null)
-                return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "connection not found.");
-
-            var context = await fabricContextFactory.CreateFabricContextAsync(connection);
-            if (context == null)
-                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "failed to create fabric context.");
-
-            var lroResponse = await context.Client.Lakehouse.Tables.LoadTableAsync(connection.WorkspaceId, lakehouseId, tableName, request);
-
-            if (lroResponse.Status == StatusCodes.Status202Accepted)
+            try
             {
+                var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
+                if (connection == null)
+                    return Result<FabricOperationResponse>.Failure(ResultStatus.NotFound, "Connection not found.");
+
+                var context = await fabricContextFactory.CreateFabricContextAsync(connection);
+                if (context == null)
+                    return Result<FabricOperationResponse>.Failure(ResultStatus.BadRequest, "Failed to create fabric context.");
+
+                // Fabric nhận yêu cầu và trả 202 kèm các header của long running operation
+                var lroResponse = await context.Client.Lakehouse.Tables.LoadTableAsync(connection.WorkspaceId, lakehouseId, tableName, request);
+
+                if (lroResponse.Status != StatusCodes.Status202Accepted)
+                    return Result<FabricOperationResponse>.Failure(
+                        ResultStatus.InternalError, $"Unexpected response from Fabric (HTTP {lroResponse.Status}).");
+
+                // Lưu operation để frontend hỏi trạng thái qua GET /api/operations/{id}
                 var createOperationRequest = fabricOperationMapper.Map(lroResponse);
-                var confirmation = await fabricOperationService.CreateFabricOperationAsync(createOperationRequest);
+                createOperationRequest.ConnectionId = connectionId;
+                createOperationRequest.OperationType = "LoadTable";
+                createOperationRequest.ResourceId = $"{lakehouseId}/{tableName}";
 
-                var headers = request
-                    .GetType()
-                    .GetProperties()
-                    .Where(p => p.GetValue(request) != null)
-                    .ToDictionary(
-                        p => p.Name,
-                        p => p.GetValue(request)!.ToString()
-                    );
-
-                foreach (var (key, value) in headers)
-                    httpContext.HttpContext?.Response?.Headers?.Add(key, value);
+                return await fabricOperationService.CreateFabricOperationAsync(createOperationRequest);
             }
-            throw new NotImplementedException();
+            catch (Exception ex)
+            {
+                return Result<FabricOperationResponse>.Failure(ResultStatus.InternalError, ex.Message);
+            }
         }
     }
 }

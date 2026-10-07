@@ -10,6 +10,7 @@ namespace FabricExplorerBackend.Features.Result
             {
                 ResultStatus.Success => StatusCodes.Status200OK,
                 ResultStatus.NotFound => StatusCodes.Status404NotFound,
+                ResultStatus.BadRequest => StatusCodes.Status400BadRequest,
                 ResultStatus.ValidationError => StatusCodes.Status400BadRequest,
                 ResultStatus.Conflict => StatusCodes.Status409Conflict,
                 ResultStatus.Unauthorized => StatusCodes.Status401Unauthorized,

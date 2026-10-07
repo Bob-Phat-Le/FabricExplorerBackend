@@ -3,6 +3,7 @@ using System;
 using FabricExplorerBackend.Infrastructures.Persistences;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FabricExplorerBackend.Migrations
 {
     [DbContext(typeof(FabricExplorerDbContext))]
-    partial class FabricExplorerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261007023124_UpdateOperationEntity")]
+    partial class UpdateOperationEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
