@@ -4,6 +4,7 @@ using FabricExplorerBackend.Features.Fabric.Client;
 using FabricExplorerBackend.Features.Fabric.Context;
 using FabricExplorerBackend.Features.Fabric.FabricRestClient;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
+using FabricExplorerBackend.Features.Fabric.MirroredDatabase;
 using FabricExplorerBackend.Features.Fabric.Operation;
 using FabricExplorerBackend.Features.Fabric.Warehouse;
 using FabricExplorerBackend.Features.Sql;
@@ -32,6 +33,7 @@ namespace FabricExplorerBackend.Extensions
             serviceCollection.AddScoped<ILakehouseTableStatsService, LakehouseTableStatsService>();
             serviceCollection.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
             serviceCollection.AddScoped<ISqlQueryService, SqlQueryService>();
+            serviceCollection.AddScoped<IMirroredDatabaseService, MirroredDatabaseService>();
 
             return serviceCollection;
         }
@@ -53,6 +55,7 @@ namespace FabricExplorerBackend.Extensions
             serviceCollection.AddScoped<IConnectionMapper, ConnectionMapper>();
             serviceCollection.AddScoped<IFabricOperationMapper, FabricOperationMapper>();
             serviceCollection.AddScoped<ILakehouseMapper, LakehouseMapper>();
+            serviceCollection.AddScoped<IMirroredDatabaseMapper, MirroredDatabaseMapper>();
 
             return serviceCollection;
         }

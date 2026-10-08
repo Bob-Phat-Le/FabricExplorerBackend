@@ -1,36 +1,85 @@
 ﻿using FabricExplorerBackend.Commons.Models.Responses.Fabric.MirroredDatabase;
-using Microsoft.Fabric.Api.MirroredDatabase.Models;
-using Riok.Mapperly.Abstractions;
+using FabricExplorerBackend.Domain.Enums;
 using FabricModel = Microsoft.Fabric.Api.MirroredDatabase.Models;
 
 namespace FabricExplorerBackend.Features.Fabric.MirroredDatabase
 {
-    [Mapper]
-    public partial class MirroredDatabaseMapper : IMirroredDatabaseMapper
+    public class MirroredDatabaseMapper : IMirroredDatabaseMapper
     {
-        [MapProperty(nameof(FabricModel.MirroredDatabase.Id),nameof(MirroredDatabaseDetailResponse.MirroredDatabaseId))]
-        [MapProperty(nameof(FabricModel.MirroredDatabase.DisplayName),nameof(MirroredDatabaseDetailResponse.MirroredDatabaseName))]
-        [MapProperty(nameof(FabricModel.MirroredDatabase.WorkspaceId),nameof(MirroredDatabaseDetailResponse.WorkspaceId))]
-        [MapProperty(nameof(FabricModel.MirroredDatabase.Type),nameof(MirroredDatabaseDetailResponse.Source))]
-        public partial MirroredDatabaseDetailResponse Map(FabricModel.MirroredDatabase mirroredDatabase);
+        public MirroredDatabaseDetailResponse Map(
+            FabricModel.MirroredDatabase mirroredDatabase,
+            Guid workspaceId,
+            string workspaceName,
+            MirroringStatus mirroringStatus,
+            MirroringDefinitionInfo? definition)
+        {
+            return new MirroredDatabaseDetailResponse
+            {
+                MirroredDatabaseId = (Guid)mirroredDatabase.Id!,
+                MirroredDatabaseName = mirroredDatabase.DisplayName,
+                WorkspaceId = workspaceId,
+                WorkspaceName = workspaceName,
+                SourceType = definition?.SourceType,
+                SourceName = definition?.SourceName,
+                // Fabric không cung cấp ngày tạo cho mirrored database --> Fabric UI có cung cấp created date --> cần kiểm tra lại
+                CreatedAt = null,
+                MirroringStatus = mirroringStatus,
+                Status = ToOnlineStatus(mirroringStatus)
+            };
+        }
 
-        public MirroringDatabaseStatusResponse Map(MirroringStatusResponse mirroringStatusResponse)
+        public MirroringDatabaseStatusResponse Map(FabricModel.MirroringStatusResponse mirroringStatusResponse)
         {
             return new MirroringDatabaseStatusResponse
             {
-                Status = mirroringStatusResponse.Status switch
-                {
-                    var status when status == FabricModel.MirroringStatus.Initializing => Domain.Enums.MirroringStatus.Initializing,
-                    var status when status == FabricModel.MirroringStatus.Initialized => Domain.Enums.MirroringStatus.Initialized,
-                    var status when status == FabricModel.MirroringStatus.Paused => Domain.Enums.MirroringStatus.Paused,
-                    var status when status == FabricModel.MirroringStatus.Running => Domain.Enums.MirroringStatus.Running,
-                    var status when status == FabricModel.MirroringStatus.Starting => Domain.Enums.MirroringStatus.Starting,
-                    var status when status == FabricModel.MirroringStatus.Stopped => Domain.Enums.MirroringStatus.Stopped,
-                    var status when status == FabricModel.MirroringStatus.Stopping => Domain.Enums.MirroringStatus.Stopping,
-
-                    _ => throw new Exception()
-                }
+                Status = MapStatus(mirroringStatusResponse.Status)
             };
         }
+
+        // Status của SDK là extensible enum nên parse theo chuỗi; giá trị lạ -> Unknown thay vì throw
+        public MirroringStatus MapStatus(object? fabricStatus)
+            => Enum.TryParse<MirroringStatus>(fabricStatus?.ToString(), ignoreCase: true, out var status)
+                ? status
+                : MirroringStatus.Unknown;
+
+        // Active = đang chạy; Starting/Initializing/Stopping/Stopped/Paused/Initialized đều chưa đồng bộ nên coi là Offline
+        public MirroredDatabaseOnlineStatus ToOnlineStatus(MirroringStatus status) => status switch
+        {
+            MirroringStatus.Running => MirroredDatabaseOnlineStatus.Active,
+            MirroringStatus.Unknown => MirroredDatabaseOnlineStatus.Unknown,
+            _ => MirroredDatabaseOnlineStatus.Offline
+        };
+
+        public TableMirroringStatus MapTableStatus(object? fabricStatus)
+            => Enum.TryParse<TableMirroringStatus>(fabricStatus?.ToString(), ignoreCase: true, out var status)
+                ? status
+                : TableMirroringStatus.Unknown;
+
+        public TableMirroringStatusResponse MapTable(
+            string? sourceSchema,
+            string? sourceTable,
+            object? status,
+            DateTimeOffset? lastSync,
+            int? lagInSeconds,
+            long processedRows,
+            MirroringDefinitionInfo? definition)
+        {
+            var table = sourceTable ?? string.Empty;
+            var targetSchema = !string.IsNullOrWhiteSpace(definition?.DefaultSchema) ? definition!.DefaultSchema : sourceSchema;
+
+            return new TableMirroringStatusResponse
+            {
+                TableName = table,
+                Source = Qualify(sourceSchema, table),
+                Target = Qualify(targetSchema, table),
+                Status = MapTableStatus(status),
+                LastSync = lastSync,
+                Lag = lagInSeconds,
+                ProcessedRows = processedRows
+            };
+        }
+
+        private static string Qualify(string? schema, string table)
+            => string.IsNullOrWhiteSpace(schema) ? table : $"{schema}.{table}";
     }
 }

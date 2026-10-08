@@ -8,6 +8,7 @@
         Running,
         Paused,
         Stopping,
-        Stopped
+        Stopped,
+        Unknown
     }
 }

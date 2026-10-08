@@ -7,6 +7,7 @@
         Replicating,
         Reseeding,
         Stopped,
-        Failed
+        Failed,
+        Unknown
     }
 }

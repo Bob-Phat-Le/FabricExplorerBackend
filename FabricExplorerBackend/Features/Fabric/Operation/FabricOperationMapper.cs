@@ -1,37 +1,61 @@
 ﻿using Azure;
 using FabricExplorerBackend.Commons.Models.Requests.FabricOperation;
+using FabricExplorerBackend.Commons.Models.Responses.Fabric.FabricOperation;
+using FabricExplorerBackend.Domain.Enums;
 using FabricExplorerBackend.Features.Fabric.Operation;
 using Microsoft.Fabric.Api.Utils;
-using Riok.Mapperly.Abstractions;
 
 namespace FabricExplorerBackend.Mappers.FabricOperation
 {
-    [Mapper]
-    public partial class FabricOperationMapper : IFabricOperationMapper
+    // Viết tay thay vì Mapperly: request có thêm các field ngữ cảnh và entity cần Id/Status/NextPollAt
+    public class FabricOperationMapper : IFabricOperationMapper
     {
-        [MapPropertyFromSource(nameof(CreateFabricOperationRequest.OperationId), Use = nameof(GetOperationId))]
-        [MapPropertyFromSource(nameof(CreateFabricOperationRequest.OperationUrl), Use = nameof(GetOperationUrl))]
-        [MapPropertyFromSource(nameof(CreateFabricOperationRequest.RetryAfter), Use = nameof(GetRetryAfter))]
-        public partial CreateFabricOperationRequest Map(Response response);
+        private const double DefaultRetryAfterSeconds = 5;
 
-        [MapperIgnoreTarget(nameof(Domain.Entities.FabricOperation.LastPolledAt))]
-        [MapperIgnoreTarget(nameof(Domain.Entities.FabricOperation.NextPollAt))]
-        [MapperIgnoreTarget(nameof(Domain.Entities.FabricOperation.PercentComplete))]
-        [MapperIgnoreTarget(nameof(Domain.Entities.FabricOperation.CreatedAt))]
-        [MapperIgnoreTarget(nameof(Domain.Entities.FabricOperation.UpdatedAt))]
-        public partial Domain.Entities.FabricOperation Map(CreateFabricOperationRequest request);
+        public CreateFabricOperationRequest Map(Response response)
+        {
+            var retryAfter = response.GetRetryAfterHeader();
 
-        private Guid GetOperationId(Response response)
-        {
-            return Guid.Parse(response.GetXmsOperationIdHeader());
+            return new CreateFabricOperationRequest
+            {
+                OperationId = Guid.Parse(response.GetXmsOperationIdHeader()),
+                OperationUrl = new Uri(response.GetLocationHeader()),
+                RetryAfter = TimeSpan.FromSeconds(retryAfter is null ? DefaultRetryAfterSeconds : Convert.ToDouble(retryAfter))
+            };
         }
-        private Uri GetOperationUrl(Response response)
+
+        public Domain.Entities.FabricOperation Map(CreateFabricOperationRequest request)
         {
-            return new Uri(response.GetLocationHeader());
+            var now = DateTimeOffset.UtcNow;
+            return new Domain.Entities.FabricOperation
+            {
+                Id = Guid.NewGuid(),
+                FabricOperationId = request.OperationId,
+                FabricOperationUrl = request.OperationUrl?.ToString(),
+                OperationType = request.OperationType,
+                ConnectionId = request.ConnectionId,
+                WorkspaceId = request.WorkspaceId,
+                ResourceId = request.ResourceId,
+                Status = FabricOperationStatus.Pending,
+                NextPollAt = now.Add(request.RetryAfter),
+                CreatedAt = now
+            };
         }
-        private TimeSpan GetRetryAfter(Response response)
+
+        public FabricOperationResponse Map(Domain.Entities.FabricOperation operation)
         {
-            return TimeSpan.FromSeconds((double)response.GetRetryAfterHeader()!);
+            return new FabricOperationResponse
+            {
+                Id = operation.Id,
+                OperationType = operation.OperationType,
+                ResourceId = operation.ResourceId,
+                Status = operation.Status,
+                PercentComplete = operation.PercentComplete,
+                ErrorCode = operation.ErrorCode,
+                ErrorMessage = operation.ErrorMessage,
+                CreatedAt = operation.CreatedAt,
+                UpdatedAt = operation.UpdatedAt
+            };
         }
     }
 }
