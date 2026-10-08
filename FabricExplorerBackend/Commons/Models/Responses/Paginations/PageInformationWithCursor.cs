@@ -1,4 +1,4 @@
-﻿namespace FabricExplorerBackend.Commons.Models.Responses.Fabric.Paginations
+﻿namespace FabricExplorerBackend.Commons.Models.Responses.Paginations
 {
     public class PageInformationWithCursor
     {

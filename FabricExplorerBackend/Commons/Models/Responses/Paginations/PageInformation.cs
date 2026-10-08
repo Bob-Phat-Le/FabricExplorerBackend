@@ -1,6 +1,6 @@
 ﻿using FabricExplorerBackend.Domain.Enums;
 
-namespace FabricExplorerBackend.Commons.Models.Responses.Fabric.Paginations
+namespace FabricExplorerBackend.Commons.Models.Responses.Paginations
 {
     public class PageInformation
     {
@@ -10,7 +10,7 @@ namespace FabricExplorerBackend.Commons.Models.Responses.Fabric.Paginations
         public int? Page { get; set; }
         public int PageSize { get; set; }
         public bool HasNextPage => Page < TotalPages;
-        public bool HasPreviousPage => Page > 1;
+        public bool HasPreviousPage => Page > 1 && Page <= TotalPages;
         public string? NextToken { get; set; }
     }
 }

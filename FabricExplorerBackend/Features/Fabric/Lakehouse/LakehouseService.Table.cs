@@ -2,7 +2,7 @@
 using FabricExplorerBackend.Commons.Models.Requests.Paginations;
 using FabricExplorerBackend.Commons.Models.Responses.Fabric;
 using FabricExplorerBackend.Commons.Models.Responses.Fabric.FabricClient;
-using FabricExplorerBackend.Commons.Models.Responses.Fabric.Paginations;
+using FabricExplorerBackend.Commons.Models.Responses.Paginations;
 using FabricExplorerBackend.Domain.Enums;
 using Microsoft.Fabric.Api.Lakehouse.Models;
 
@@ -87,34 +87,46 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 
         public async Task<Result<ConfirmationResponse>> LoadTableAsync(Guid connectionId, Guid lakehouseId, string tableName, LoadTableRequest request)
         {
-            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
-            if (connection == null)
-                return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "connection not found.");
-
-            var context = await fabricContextFactory.CreateFabricContextAsync(connection);
-            if (context == null)
-                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "failed to create fabric context.");
-
-            var lroResponse = await context.Client.Lakehouse.Tables.LoadTableAsync(connection.WorkspaceId, lakehouseId, tableName, request);
-
-            if (lroResponse.Status == StatusCodes.Status202Accepted)
-            {
-                var createOperationRequest = fabricOperationMapper.Map(lroResponse);
-                var confirmation = await fabricOperationService.CreateFabricOperationAsync(createOperationRequest);
-
-                var headers = request
-                    .GetType()
-                    .GetProperties()
-                    .Where(p => p.GetValue(request) != null)
-                    .ToDictionary(
-                        p => p.Name,
-                        p => p.GetValue(request)!.ToString()
-                    );
-
-                foreach (var (key, value) in headers)
-                    httpContext.HttpContext?.Response?.Headers?.Add(key, value);
-            }
             throw new NotImplementedException();
+            //try
+            //{
+            //    var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
+            //    if (connection == null)
+            //        return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "connection not found.");
+
+            //    var context = await fabricContextFactory.CreateFabricContextAsync(connection);
+            //    if (context == null)
+            //        return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "failed to create fabric context.");
+
+            //    var lroResponse = await context.Client.Lakehouse.Tables.LoadTableAsync(connection.WorkspaceId, lakehouseId, tableName, request);
+
+            //    if (lroResponse.Status == StatusCodes.Status202Accepted)
+            //    {
+            //        var createOperationRequest = fabricOperationMapper.Map(lroResponse);
+            //        var confirmation = await fabricOperationService.CreateFabricOperationAsync(createOperationRequest);
+
+            //        var headers = request
+            //            .GetType()
+            //            .GetProperties()
+            //            .Where(p => p.GetValue(request) != null)
+            //            .ToDictionary(
+            //                p => p.Name,
+            //                p => p.GetValue(request)!.ToString()
+            //            );
+
+            //        foreach (var (key, value) in headers)
+            //            httpContext.HttpContext?.Response?.Headers?.Add(key, value);
+            //    }
+            //}
+            //catch (AuthenticationFailedException ex)
+            //{
+            //    return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, ex.Message);
+            //}
+            //catch (RequestFailedException ex) when (ex.Status is 401 or 403)
+            //{
+            //    return Result<ConfirmationResponse>.Failure(
+            //        ResultStatus.Forbidden, "The connection is not allowed to list workspaces.");
+            //}
         }
     }
 }

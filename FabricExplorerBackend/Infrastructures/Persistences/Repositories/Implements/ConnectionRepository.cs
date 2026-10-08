@@ -12,6 +12,11 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             await context.Connections.AddAsync(entity);
         }
 
+        public async Task<Connection?> CheckDuplicateWorkspaceIdAsync(Guid workspaceId)
+        {
+            return await context.Connections.FirstOrDefaultAsync(c => c.WorkspaceId == workspaceId);
+        }
+
         public async Task Delete(Connection entity)
         {
             if (entity is ISoftDeletable softDeletableEntity)

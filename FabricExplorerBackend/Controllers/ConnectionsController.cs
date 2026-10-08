@@ -3,7 +3,7 @@ using FabricExplorerBackend.Commons.Models.Requests.Connection;
 using FabricExplorerBackend.Commons.Models.Requests.Paginations;
 using FabricExplorerBackend.Commons.Models.Responses.Connection;
 using FabricExplorerBackend.Commons.Models.Responses.Fabric;
-using FabricExplorerBackend.Commons.Models.Responses.Fabric.Paginations;
+using FabricExplorerBackend.Commons.Models.Responses.Paginations;
 using FabricExplorerBackend.Features.Connection;
 using FabricExplorerBackend.Features.Result;
 using Microsoft.AspNetCore.Authorization;

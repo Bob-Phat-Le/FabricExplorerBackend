@@ -1,5 +1,6 @@
 using FabricExplorerBackend.Extensions;
 using FabricExplorerBackend.Infrastructures.Persistences;
+using FabricExplorerBackend.Middlewares;
 using FabricExplorerBackend.TestAuthenticationHandler;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
@@ -84,6 +85,9 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseCors("MyAllowSpecificOrigin");
+
+//app.UseRequestResponseLogging();
+app.UseGlobalExceptionHandling();
 
 app.UseAuthentication();
 app.UseAuthorization();
