@@ -7,8 +7,10 @@ using FabricExplorerBackend.Features.Fabric.Lakehouse;
 using FabricExplorerBackend.Features.Fabric.MirroredDatabase;
 using FabricExplorerBackend.Features.Fabric.Operation;
 using FabricExplorerBackend.Features.Fabric.Warehouse;
+using FabricExplorerBackend.Features.Fabric.Workspace;
 using FabricExplorerBackend.Features.Sql;
 using FabricExplorerBackend.Features.Token;
+using FabricExplorerBackend.Helpers;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Securities;
@@ -34,6 +36,8 @@ namespace FabricExplorerBackend.Extensions
             serviceCollection.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
             serviceCollection.AddScoped<ISqlQueryService, SqlQueryService>();
             serviceCollection.AddScoped<IMirroredDatabaseService, MirroredDatabaseService>();
+            serviceCollection.AddScoped<IWorkspaceService, WorkspaceService>();
+            serviceCollection.AddScoped<ICredentialHelper, CredentialHelper>();
 
             return serviceCollection;
         }

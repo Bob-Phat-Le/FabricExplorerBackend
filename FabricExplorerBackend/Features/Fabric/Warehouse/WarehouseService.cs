@@ -109,9 +109,14 @@ namespace FabricExplorerBackend.Features.Fabric.Warehouse
 
                 return Result<IEnumerable<WarehouseListItemResponse>>.Success(response);
             }
-            catch (Exception ex)
+            catch (AuthenticationFailedException ex)
             {
-                return Result<IEnumerable<WarehouseListItemResponse>>.Failure(ResultStatus.InternalError, ex.Message);
+                return Result<IEnumerable<WarehouseListItemResponse>>.Failure(ResultStatus.BadRequest, ex.Message);
+            }
+            catch (RequestFailedException ex) when (ex.Status is 401 or 403)
+            {
+                return Result<IEnumerable<WarehouseListItemResponse>>.Failure(
+                    ResultStatus.Forbidden, "The connection is not allowed to list workspaces.");
             }
         }
 
@@ -134,9 +139,14 @@ namespace FabricExplorerBackend.Features.Fabric.Warehouse
                     ConnectionString = response.Value.ConnectionString
                 });
             }
-            catch (Exception ex)
+            catch (AuthenticationFailedException ex)
             {
-                return Result<WarehouseConnectionStringResponse>.Failure(ResultStatus.InternalError, ex.Message);
+                return Result<WarehouseConnectionStringResponse>.Failure(ResultStatus.BadRequest, ex.Message);
+            }
+            catch (RequestFailedException ex) when (ex.Status is 401 or 403)
+            {
+                return Result<WarehouseConnectionStringResponse>.Failure(
+                    ResultStatus.Forbidden, "The connection is not allowed to list workspaces.");
             }
         }
 

@@ -31,7 +31,6 @@
 
   <ItemGroup>
     <Folder Include="Infrastructures\Persistences\Migrations\" />
-    <Folder Include="Middlewares\" />
   </ItemGroup>
 
 </Project>
