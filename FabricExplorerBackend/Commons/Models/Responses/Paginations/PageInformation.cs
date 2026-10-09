@@ -6,11 +6,11 @@ namespace FabricExplorerBackend.Commons.Models.Responses.Paginations
     {
         public PaginationMode PaginationMode { get; set; } = PaginationMode.Offset;
         public int TotalPages { get; set; }
-        public int? TotalItems { get; set; }
-        public int? Page { get; set; }
-        public int PageSize { get; set; }
+        public int TotalItems { get; set; }
+        public int ItemsCount { get; set; }
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
         public bool HasNextPage => Page < TotalPages;
-        public bool HasPreviousPage => Page > 1 && Page <= TotalPages;
-        public string? NextToken { get; set; }
+        public bool HasPreviousPage => Page > 1 && TotalPages > 0;
     }
 }

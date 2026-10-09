@@ -2,13 +2,13 @@
 {
     public class PaginationRequest
     {
-        public int? Page { get; set; } = 1;
+        public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 20;
-        public string? ContinuationToken { get; set; }
 
-        public bool IsValid()
+        public void Validate()
         {
-            return (Page.HasValue && Page > 0 && ContinuationToken == null) || (Page == null && ContinuationToken != null);
+            Page = Page < 1 ? 1 : Page;
+            PageSize = PageSize <= 0 || PageSize > 100 ? 20 : PageSize;
         }
     }
 }
