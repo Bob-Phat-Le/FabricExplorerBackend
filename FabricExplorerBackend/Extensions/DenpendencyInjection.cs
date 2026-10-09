@@ -10,7 +10,6 @@ using FabricExplorerBackend.Features.Fabric.Warehouse;
 using FabricExplorerBackend.Features.Fabric.Workspace;
 using FabricExplorerBackend.Features.Sql;
 using FabricExplorerBackend.Features.Token;
-using FabricExplorerBackend.Helpers;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Securities;
@@ -35,9 +34,10 @@ namespace FabricExplorerBackend.Extensions
             serviceCollection.AddScoped<ILakehouseTableStatsService, LakehouseTableStatsService>();
             serviceCollection.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
             serviceCollection.AddScoped<ISqlQueryService, SqlQueryService>();
-            serviceCollection.AddScoped<IMirroredDatabaseService, MirroredDatabaseService>();
+            serviceCollection.AddSingleton<ISingleFlight, SingleFlight>();   // danh sách lần chạy đang diễn ra phải dùng chung toàn app
+            serviceCollection.AddScoped<ICachedFetcher, CachedFetcher>();
             serviceCollection.AddScoped<IWorkspaceService, WorkspaceService>();
-            serviceCollection.AddScoped<ICredentialHelper, CredentialHelper>();
+            serviceCollection.AddScoped<IMirroredDatabaseService, MirroredDatabaseService>();
 
             return serviceCollection;
         }

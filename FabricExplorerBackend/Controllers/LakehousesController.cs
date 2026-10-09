@@ -4,6 +4,7 @@ using FabricExplorerBackend.Commons.Models.Responses.Fabric;
 using FabricExplorerBackend.Commons.Models.Responses.Fabric.FabricClient;
 using FabricExplorerBackend.Commons.Models.Responses.Lakehouse;
 using FabricExplorerBackend.Commons.Models.Responses.Paginations;
+using FabricExplorerBackend.Extensions;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
 using FabricExplorerBackend.Features.Result;
 using Microsoft.AspNetCore.Mvc;
@@ -18,9 +19,10 @@ namespace FabricExplorerBackend.Controllers
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<LakehouseListItemResponse>>>> GetAllLakehouses(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
-            Guid workspaceId)
+            Guid workspaceId,
+            CancellationToken cancellationToken)
         {
-            var response = await lakehouseService.GetAllLakehousesAsync(connectionId, workspaceId);
+            var response = await lakehouseService.GetAllLakehousesAsync(connectionId, workspaceId, Request.ShouldBypassCache(), cancellationToken);
             var statusCode = ResultMapper.ToHttpStatusCode(response.ResultStatus);
             if (response.IsSuccess)
                 return Ok(new ApiResponse<IEnumerable<LakehouseListItemResponse>>(statusCode, response.Data));
@@ -30,10 +32,14 @@ namespace FabricExplorerBackend.Controllers
         [HttpGet("{lakehouseId}/tables")]
         public async Task<ActionResult<ApiResponse<PagedResponseWithCursor<IEnumerable<TableResponse>>>>> GetAllTables(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
+            Guid workspaceId,
             Guid lakehouseId,
-            [FromQuery] PaginationWithCursorRequest? paginationRequest)
+            [FromQuery] PaginationWithCursorRequest? paginationRequest,
+            CancellationToken cancellationToken)
         {
-            var response = await lakehouseService.GetAllTablesAsync(connectionId, lakehouseId, paginationRequest);
+            // workspaceId lấy từ route và được truyền xuống: lakehouse ở workspace nào cũng đọc đúng workspace đó
+            var response = await lakehouseService.GetAllTablesAsync(
+                connectionId, workspaceId, lakehouseId, paginationRequest, Request.ShouldBypassCache(), cancellationToken);
             var statusCode = ResultMapper.ToHttpStatusCode(response.ResultStatus);
             if (response.IsSuccess)
                 return Ok(new ApiResponse<PagedResponseWithCursor<IEnumerable<TableResponse>>>(statusCode, response.Data));

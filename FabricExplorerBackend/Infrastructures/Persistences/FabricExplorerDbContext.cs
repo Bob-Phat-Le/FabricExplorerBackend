@@ -27,7 +27,8 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
                 entity.HasKey(c => c.Id);
                 entity
                     .HasIndex(c => c.WorkspaceId)
-                    .IsUnique();
+                    .IsUnique()
+                    .HasFilter("\"IsDeleted\" = false");
             });
             modelBuilder.Entity<FabricOperation>(entity =>
             {

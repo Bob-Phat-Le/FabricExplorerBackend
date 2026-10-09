@@ -5,7 +5,7 @@ namespace FabricExplorerBackend.Features.Sql
     public interface ISqlConnectionFactory
     {
         /// <summary>Lấy access token (scope SQL) của connection. Token được cache bởi ITokenService.</summary>
-        Task<string> GetAccessTokenAsync(Domain.Entities.Connection connection);
+        Task<string> GetAccessTokenAsync(Domain.Entities.Connection connection, CancellationToken cancellationToken = default);
 
         /// <summary>Lấy token từ connection rồi mở kết nối tới endpoint. Người gọi chịu trách nhiệm dispose kết nối.</summary>
         Task<SqlConnection> OpenConnectionAsync(

@@ -10,8 +10,11 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 {
     public interface ILakehouseService
     {
-        Task<Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>> GetAllTablesAsync(Guid connectionId, Guid lakehouseId, PaginationWithCursorRequest? paginationRequest);
+        Task<Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>> GetAllTablesAsync(
+            Guid connectionId, Guid workspaceId, Guid lakehouseId, PaginationWithCursorRequest? paginationRequest,
+            bool bypassCache = false, CancellationToken cancellationToken = default);
         Task<Result<ConfirmationResponse>> LoadTableAsync(Guid connectionId, Guid lakehouseId, string tableName, LoadTableRequest request);
-        Task<Result<IEnumerable<LakehouseListItemResponse>>> GetAllLakehousesAsync(Guid connectionId, Guid workspaceId);
+        Task<Result<IEnumerable<LakehouseListItemResponse>>> GetAllLakehousesAsync(
+            Guid connectionId, Guid workspaceId, bool bypassCache = false, CancellationToken cancellationToken = default);
     }
 }

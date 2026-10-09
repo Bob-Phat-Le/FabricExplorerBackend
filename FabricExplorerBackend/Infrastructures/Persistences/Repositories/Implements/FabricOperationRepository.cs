@@ -36,13 +36,13 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             return await query.Where(op => op.Status == FabricOperationStatus.Pending || op.Status == FabricOperationStatus.Running).ToListAsync();
         }
 
-        public Task<FabricOperation?> GetByIdAsync(Guid id, bool trackChanges = false)
+        public Task<FabricOperation?> GetByIdAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
             var query = context.Operations.AsQueryable();
             if (!trackChanges)
                 query = query.AsNoTracking();
 
-            return query.FirstOrDefaultAsync(op => op.Id == id);
+            return query.FirstOrDefaultAsync(op => op.Id == id, cancellationToken);
         }
 
         public Task Update(FabricOperation entity)

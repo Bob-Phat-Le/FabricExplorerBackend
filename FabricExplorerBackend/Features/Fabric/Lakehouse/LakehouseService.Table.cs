@@ -1,6 +1,7 @@
 ﻿using FabricExplorerBackend.Commons;
 using FabricExplorerBackend.Commons.Models.Requests.Paginations;
 using FabricExplorerBackend.Commons.Models.Responses.Fabric;
+using FabricExplorerBackend.Commons.Models.Responses.Fabric.Exceptions;
 using FabricExplorerBackend.Commons.Models.Responses.Fabric.FabricClient;
 using FabricExplorerBackend.Commons.Models.Responses.Paginations;
 using FabricExplorerBackend.Domain.Enums;
@@ -10,57 +11,53 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 {
     public partial class LakehouseService
     {
-        public async Task<Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>> GetAllTablesAsync(Guid connectionId, Guid lakehouseId, PaginationWithCursorRequest? paginationRequest)
+        public async Task<Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>> GetAllTablesAsync(
+            Guid connectionId,
+            Guid workspaceId,
+            Guid lakehouseId,
+            PaginationWithCursorRequest? paginationRequest,
+            bool bypassCache = false,
+            CancellationToken cancellationToken = default)
         {
             try
             {
-                var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
+                if (paginationRequest != null)
+                    paginationRequest.Validate();
+
+                var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
                 if (connection == null)
                     return Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>.Failure(ResultStatus.NotFound, "Connection not found.");
 
                 var client = fabricRestClientFactory.CreateFabricRestClient(connection);
 
-                var baseUrl =
+                // Workspace lấy từ route (không phải connection.WorkspaceId) để lakehouse ở workspace nào cũng đọc được
+                var pageSize = paginationRequest?.PageSize ?? 20;
+                var continuationToken = paginationRequest?.ContinuationToken;
+                var isFirstPage = string.IsNullOrWhiteSpace(continuationToken);
+
+                var url =
                     $"{configuration.GetValue<string>("External:BaseFabricApiUrl")}" +
-                    $"/workspaces/{connection.WorkspaceId}" +
+                    $"/workspaces/{workspaceId}" +
                     $"/lakehouses/{lakehouseId}/tables" +
-                    $"?pageSize={paginationRequest!.PageSize}";
+                    $"?pageSize={pageSize}";
+                if (!isFirstPage)
+                    url += $"&continuationToken={Uri.EscapeDataString(continuationToken!)}";
 
-                FabricValueListResponse<FabricTableResponse>? response;
-
-                if (!string.IsNullOrWhiteSpace(paginationRequest?.ContinuationToken))
-                {
-                    var url =
-                        $"{baseUrl}" +
-                        $"&continuationToken={Uri.EscapeDataString(paginationRequest.ContinuationToken!)}";
-                    response = await client.GetAsync<FabricValueListResponse<FabricTableResponse>>(url);
-                }
-                else
-                    response = await client.GetAsync<FabricValueListResponse<FabricTableResponse>>(baseUrl);
+                var response = await client.GetAsync<FabricValueListResponse<FabricTableResponse>>(url, cancellationToken);
 
                 var allTables = response?.Data ?? [];
                 IEnumerable<FabricTableResponse> tables = allTables!;
 
-                PageInformationWithCursor pageInformation;
-                if (!string.IsNullOrWhiteSpace(paginationRequest?.ContinuationToken))
+                var pageInformation = new PageInformationWithCursor
                 {
-                    pageInformation = new PageInformationWithCursor
-                    {
-                        PageSize = paginationRequest.PageSize,
-                        NextToken = response!.ContinuationToken,
-                    };
-                }
-                else
-                {
-                    pageInformation = new PageInformationWithCursor
-                    {
-                        TotalItems = allTables.Count,
-                        NextToken = response?.ContinuationToken
-                    };
-                }
+                    PageSize = pageSize,
+                    NextToken = response?.ContinuationToken,
+                    ItemsCount = allTables.Count
+                };
 
-                // Chỉ tính stats cho các bảng của trang hiện tại; không bao giờ throw vì lỗi từng bảng
-                var statsByTable = await tableStatsService.GetStatsAsync(connection, lakehouseId, tables);
+                // Chỉ tính stats cho các bảng của trang hiện tại (có cache theo từng bảng); không bao giờ throw vì lỗi từng bảng
+                var statsByTable = await tableStatsService.GetStatsAsync(
+                    connection, workspaceId, lakehouseId, tables, bypassCache, cancellationToken);
 
                 var result = tables
                     .Select(t =>
@@ -79,54 +76,46 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
                 return Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>.Success(
                     new PagedResponseWithCursor<IEnumerable<TableResponse>>(result, pageInformation));
             }
-            catch (Exception ex)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                return Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>.Failure(ResultStatus.InternalError, ex.Message);
+                throw;
+            }
+            catch (FabricErrorResponse ex)
+            {
+                return Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>.Failure(ResultStatus.BadRequest, ex.Message);
             }
         }
 
         public async Task<Result<ConfirmationResponse>> LoadTableAsync(Guid connectionId, Guid lakehouseId, string tableName, LoadTableRequest request)
         {
+            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
+            if (connection == null)
+                return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "connection not found.");
+
+            var context = await fabricContextFactory.CreateFabricContextWithoutTokenAsync(connection);
+            if (context == null)
+                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "failed to create fabric context.");
+
+            var lroResponse = await context.Client.Lakehouse.Tables.LoadTableAsync(connection.WorkspaceId, lakehouseId, tableName, request);
+
+            if (lroResponse.Status == StatusCodes.Status202Accepted)
+            {
+                var createOperationRequest = fabricOperationMapper.Map(lroResponse);
+                var confirmation = await fabricOperationService.CreateFabricOperationAsync(createOperationRequest);
+
+                var headers = request
+                    .GetType()
+                    .GetProperties()
+                    .Where(p => p.GetValue(request) != null)
+                    .ToDictionary(
+                        p => p.Name,
+                        p => p.GetValue(request)!.ToString()
+                    );
+
+                foreach (var (key, value) in headers)
+                    httpContext.HttpContext?.Response?.Headers?.Add(key, value);
+            }
             throw new NotImplementedException();
-            //try
-            //{
-            //    var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
-            //    if (connection == null)
-            //        return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "connection not found.");
-
-            //    var context = await fabricContextFactory.CreateFabricContextAsync(connection);
-            //    if (context == null)
-            //        return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "failed to create fabric context.");
-
-            //    var lroResponse = await context.Client.Lakehouse.Tables.LoadTableAsync(connection.WorkspaceId, lakehouseId, tableName, request);
-
-            //    if (lroResponse.Status == StatusCodes.Status202Accepted)
-            //    {
-            //        var createOperationRequest = fabricOperationMapper.Map(lroResponse);
-            //        var confirmation = await fabricOperationService.CreateFabricOperationAsync(createOperationRequest);
-
-            //        var headers = request
-            //            .GetType()
-            //            .GetProperties()
-            //            .Where(p => p.GetValue(request) != null)
-            //            .ToDictionary(
-            //                p => p.Name,
-            //                p => p.GetValue(request)!.ToString()
-            //            );
-
-            //        foreach (var (key, value) in headers)
-            //            httpContext.HttpContext?.Response?.Headers?.Add(key, value);
-            //    }
-            //}
-            //catch (AuthenticationFailedException ex)
-            //{
-            //    return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, ex.Message);
-            //}
-            //catch (RequestFailedException ex) when (ex.Status is 401 or 403)
-            //{
-            //    return Result<ConfirmationResponse>.Failure(
-            //        ResultStatus.Forbidden, "The connection is not allowed to list workspaces.");
-            //}
         }
     }
 }

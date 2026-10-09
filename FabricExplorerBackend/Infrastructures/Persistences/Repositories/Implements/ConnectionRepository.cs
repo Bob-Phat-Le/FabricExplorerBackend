@@ -14,7 +14,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
 
         public async Task<Connection?> CheckDuplicateWorkspaceIdAsync(Guid workspaceId)
         {
-            return await context.Connections.FirstOrDefaultAsync(c => c.WorkspaceId == workspaceId);
+            return await context.Connections.FirstOrDefaultAsync(c => !c.IsDeleted && c.WorkspaceId == workspaceId);
         }
 
         public async Task Delete(Connection entity)
@@ -36,24 +36,24 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
 
         public async Task<(IEnumerable<Connection>, int)> GetAllAsync(int skip, int take, bool trackChanges = false)
         {
-            var query = context.Connections.AsQueryable();
-            var count = query.Count();
+            var query = context.Connections.AsQueryable().Where(c => !c.IsDeleted);
+            var count = await query.CountAsync();
             if (!trackChanges)
                 query = query.AsNoTracking();
             if (skip > 0)
                 query = query.Skip(skip);
             if (take > 0)
                 query = query.Take(take);
-            var result = await query.Where(c => !c.IsDeleted).ToListAsync();
+            var result = await query.ToListAsync();
             return (result, count);
         }
 
-        public async Task<Connection?> GetByIdAsync(Guid id, bool trackChanges = false)
+        public async Task<Connection?> GetByIdAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
-            var query = context.Connections.AsQueryable();
+            var query = context.Connections.AsQueryable().Where(c => !c.IsDeleted);
             if (!trackChanges)
                 query = query.AsNoTracking();
-            return await query.FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
+            return await query.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         }
 
         public async Task Update(Connection entity)
