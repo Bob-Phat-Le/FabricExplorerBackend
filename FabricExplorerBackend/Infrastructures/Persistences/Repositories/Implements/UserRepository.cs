@@ -43,12 +43,12 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             return (result, count);
         }
 
-        public async Task<User?> GetByIdAsync(Guid id, bool trackChanges = false)
+        public async Task<User?> GetByIdAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
             var query = context.Users.AsQueryable();
             if (!trackChanges)
                 query.AsNoTracking();
-            return await query.FirstOrDefaultAsync(u => !u.IsDeleted && u.Id == id);
+            return await query.FirstOrDefaultAsync(u => !u.IsDeleted && u.Id == id, cancellationToken);
         }
 
         public async Task<User?> GetByIdWithConnectionAsync(Guid userId, bool trackChanges = false)

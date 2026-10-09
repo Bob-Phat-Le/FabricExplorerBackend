@@ -7,18 +7,18 @@ namespace FabricExplorerBackend.Features.Sql
         IConfiguration configuration,
         ITokenService tokenService) : ISqlConnectionFactory
     {
-        public Task<string> GetAccessTokenAsync(Domain.Entities.Connection connection)
+        public Task<string> GetAccessTokenAsync(Domain.Entities.Connection connection, CancellationToken cancellationToken = default)
         {
             // Mỗi dịch vụ có audience riêng nên token SQL khác token của Fabric API;
             // TokenService phải cache theo cả scope thì hai loại token này mới không lẫn vào nhau
             var scope = configuration.GetValue("Scopes:sql", "https://database.windows.net/.default")!;
-            return tokenService.GetOrCreateTokenAsync(connection, scope);
+            return tokenService.GetOrCreateTokenAsync(connection, scope, cancellationToken);
         }
 
         public async Task<SqlConnection> OpenConnectionAsync(
             Domain.Entities.Connection connection, SqlEndpoint endpoint, CancellationToken cancellationToken = default)
         {
-            var accessToken = await GetAccessTokenAsync(connection);
+            var accessToken = await GetAccessTokenAsync(connection, cancellationToken);
             return await OpenConnectionAsync(accessToken, endpoint, cancellationToken);
         }
 

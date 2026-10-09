@@ -1,4 +1,5 @@
-﻿using FabricExplorerBackend.Features.Fabric.Context;
+﻿using FabricExplorerBackend.Features.Cache;
+using FabricExplorerBackend.Features.Fabric.Context;
 using FabricExplorerBackend.Features.Fabric.FabricRestClient;
 using FabricExplorerBackend.Features.Fabric.Operation;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
@@ -14,7 +15,8 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
         IFabricOperationMapper fabricOperationMapper,
         IFabricOperationService fabricOperationService,
         ILakehouseMapper lakehouseMapper,
-        ILakehouseTableStatsService tableStatsService) : ILakehouseService
+        ILakehouseTableStatsService tableStatsService,
+        ICachedFetcher cachedFetcher) : ILakehouseService
     {
     }
 }

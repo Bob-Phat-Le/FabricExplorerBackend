@@ -4,7 +4,7 @@ namespace FabricExplorerBackend.Features.Fabric.Context
 {
     public interface IFabricContextFactory
     {
-        //Task<FabricContext> CreateFabricContextAsync(Guid tenantId, Guid connectionId, Guid workspaceId, string accessToken);
-        Task<FabricContext?> CreateFabricContextAsync(Domain.Entities.Connection connection);
+        Task<FabricContext> CreateFabricContextWithTokenAsync(Domain.Entities.Connection connection, string accessToken);
+        Task<FabricContext?> CreateFabricContextWithoutTokenAsync(Domain.Entities.Connection connection, CancellationToken cancellationToken = default);
     }
 }

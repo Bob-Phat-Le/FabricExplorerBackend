@@ -8,7 +8,6 @@ using FabricExplorerBackend.Features.Cache;
 using FabricExplorerBackend.Features.Fabric.Context;
 using FabricExplorerBackend.Features.Fabric.Operation;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
-using System.Text.Json;
 
 namespace FabricExplorerBackend.Features.Fabric.MirroredDatabase
 {
@@ -17,72 +16,77 @@ namespace FabricExplorerBackend.Features.Fabric.MirroredDatabase
         IFabricContextFactory fabricContextFactory,
         IFabricOperationMapper fabricOperationMapper,
         IFabricOperationService fabricOperationService,
-        ICacheService cacheService,
+        ICachedFetcher cachedFetcher,
+        IConfiguration configuration,
         IUnitOfWork unitOfWork,
         ILogger<MirroredDatabaseService> logger) : IMirroredDatabaseService
     {
         private const string MirroringDefinitionFileName = "mirroring.json";
-        private const int MaxParallelFabricCalls = 4;
-        private static readonly TimeSpan DefinitionCacheDuration = TimeSpan.FromMinutes(15);
 
         // ---------------------------------------------------------------- Get Mirrored DB
 
-        public async Task<Result<IEnumerable<MirroredDatabaseDetailResponse>>> ListMirroredDatabasesAsync(Guid connectionId, Guid workspaceId)
+        // Danh sách nhẹ: chỉ id/tên/workspace. Status và nguồn của từng DB là các lời gọi riêng (status + definition)
+        // nên chỉ lấy ở endpoint chi tiết, khi người dùng thật sự chọn một DB.
+        public async Task<Result<IEnumerable<MirroredDatabaseListItemResponse>>> ListMirroredDatabasesAsync(
+            Guid connectionId, Guid workspaceId, bool bypassCache = false, CancellationToken cancellationToken = default)
         {
             try
             {
-                var context = await CreateContextAsync(connectionId);
+                var connection = await LoadConnectionAsync(connectionId, cancellationToken);
 
-                var workspaceTask = context.Client.Core.Workspaces.GetWorkspaceAsync(workspaceId);
-                var databasesTask = context.Client.MirroredDatabase.Items
-                    .ListMirroredDatabasesAsync(workspaceId)
-                    .ToListAsync()
-                    .AsTask();
+                var ttl = TimeSpan.FromSeconds(configuration.GetValue("Fabric:ItemListCacheSeconds", 60));
+                var key = cachedFetcher.CreateKey("mirrored-dbs", connectionId.ToString(), workspaceId.ToString());
 
-                await Task.WhenAll(workspaceTask, databasesTask);
-
-                var workspaceName = (await workspaceTask).Value.DisplayName;
-                var databases = await databasesTask;
-
-                // Mỗi database cần thêm 2 call (status + definition) nên giới hạn số call song song
-                using var semaphore = new SemaphoreSlim(MaxParallelFabricCalls);
-                var items = await Task.WhenAll(databases.Select(async database =>
-                {
-                    await semaphore.WaitAsync();
-                    try
+                var items = await cachedFetcher.GetOrFetchAsync<IReadOnlyList<MirroredDatabaseListItemResponse>>(
+                    key, ttl,
+                    async ct =>
                     {
-                        var id = (Guid)database.Id!;
-                        var statusTask = GetMirroringStatusValueAsync(context, workspaceId, id);
-                        var definitionTask = GetDefinitionInfoAsync(context, workspaceId, id);
-                        await Task.WhenAll(statusTask, definitionTask);
+                        // Quy tắc của fetch dùng chung: chỉ dùng dữ liệu thuần + context, không dùng UnitOfWork
+                        var context = await CreateContextAsync(connection, ct);
 
-                        return mapper.Map(database, workspaceId, workspaceName, await statusTask, await definitionTask);
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                }));
+                        var workspaceTask = context.Client.Core.Workspaces.GetWorkspaceAsync(workspaceId, cancellationToken: ct);
+                        var databasesTask = context.Client.MirroredDatabase.Items
+                            .ListMirroredDatabasesAsync(workspaceId)
+                            .ToListAsync(ct)
+                            .AsTask();
 
-                return Result<IEnumerable<MirroredDatabaseDetailResponse>>.Success(
-                    items.OrderBy(item => item.MirroredDatabaseName, StringComparer.OrdinalIgnoreCase).ToList());
+                        await Task.WhenAll(workspaceTask, databasesTask);
+
+                        var workspaceName = (await workspaceTask).Value.DisplayName;
+                        return (await databasesTask)
+                            .Select(database => new MirroredDatabaseListItemResponse
+                            {
+                                MirroredDatabaseId = (Guid)database.Id!,
+                                MirroredDatabaseName = database.DisplayName,
+                                WorkspaceId = workspaceId,
+                                WorkspaceName = workspaceName,
+                                ConnectionId = connectionId
+                            })
+                            .OrderBy(item => item.MirroredDatabaseName, StringComparer.OrdinalIgnoreCase)
+                            .ToList();
+                    },
+                    bypassCache,
+                    cancellationToken: cancellationToken);
+
+                return Result<IEnumerable<MirroredDatabaseListItemResponse>>.Success(items);
             }
             catch (Exception ex)
             {
-                return Fail<IEnumerable<MirroredDatabaseDetailResponse>>(ex);
+                return Fail<IEnumerable<MirroredDatabaseListItemResponse>>(ex, cancellationToken);
             }
         }
 
-        public async Task<Result<MirroredDatabaseDetailResponse>> GetMirroredDatabaseByIdAsync(Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId)
+        public async Task<Result<MirroredDatabaseDetailResponse>> GetMirroredDatabaseByIdAsync(
+            Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken = default)
         {
             try
             {
-                var context = await CreateContextAsync(connectionId);
+                var context = await CreateContextAsync(connectionId, cancellationToken);
 
-                var databaseTask = context.Client.MirroredDatabase.Items.GetMirroredDatabaseAsync(workspaceId, mirroredDatabaseId);
-                var workspaceTask = context.Client.Core.Workspaces.GetWorkspaceAsync(workspaceId);
-                var statusTask = GetMirroringStatusValueAsync(context, workspaceId, mirroredDatabaseId);
-                var definitionTask = GetDefinitionInfoAsync(context, workspaceId, mirroredDatabaseId);
+                var databaseTask = context.Client.MirroredDatabase.Items.GetMirroredDatabaseAsync(workspaceId, mirroredDatabaseId, cancellationToken: cancellationToken);
+                var workspaceTask = context.Client.Core.Workspaces.GetWorkspaceAsync(workspaceId, cancellationToken: cancellationToken);
+                var statusTask = GetMirroringStatusValueAsync(context, workspaceId, mirroredDatabaseId, cancellationToken);
+                var definitionTask = GetDefinitionInfoAsync(context, workspaceId, mirroredDatabaseId, cancellationToken);
 
                 await Task.WhenAll(databaseTask, workspaceTask, statusTask, definitionTask);
 
@@ -97,22 +101,23 @@ namespace FabricExplorerBackend.Features.Fabric.MirroredDatabase
             }
             catch (Exception ex)
             {
-                return Fail<MirroredDatabaseDetailResponse>(ex);
+                return Fail<MirroredDatabaseDetailResponse>(ex, cancellationToken);
             }
         }
 
         // ---------------------------------------------------------------- Get Status
 
-        public async Task<Result<MirroringDatabaseStatusResponse>> GetMirroringStatusAsync(Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId)
+        public async Task<Result<MirroringDatabaseStatusResponse>> GetMirroringStatusAsync(
+            Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken = default)
         {
             try
             {
-                var context = await CreateContextAsync(connectionId);
+                var context = await CreateContextAsync(connectionId, cancellationToken);
 
-                var statusTask = context.Client.MirroredDatabase.Mirroring.GetMirroringStatusAsync(workspaceId, mirroredDatabaseId);
+                var statusTask = context.Client.MirroredDatabase.Mirroring.GetMirroringStatusAsync(workspaceId, mirroredDatabaseId, cancellationToken: cancellationToken);
                 var tablesTask = context.Client.MirroredDatabase.Mirroring
                     .GetTablesMirroringStatusAsync(workspaceId, mirroredDatabaseId)
-                    .ToListAsync()
+                    .ToListAsync(cancellationToken)
                     .AsTask();
 
                 var mirroringStatus = (await statusTask).Value;
@@ -129,7 +134,7 @@ namespace FabricExplorerBackend.Features.Fabric.MirroredDatabase
             }
             catch (Exception ex)
             {
-                return Fail<MirroringDatabaseStatusResponse>(ex);
+                return Fail<MirroringDatabaseStatusResponse>(ex, cancellationToken);
             }
         }
 
@@ -138,17 +143,18 @@ namespace FabricExplorerBackend.Features.Fabric.MirroredDatabase
         public async Task<Result<IEnumerable<Commons.Models.Responses.Fabric.MirroredDatabase.TableMirroringStatusResponse>>> ListTablesMirroringStatusAsync(
             Guid connectionId,
             Guid workspaceId,
-            Guid mirroredDatabaseId)
+            Guid mirroredDatabaseId,
+            CancellationToken cancellationToken = default)
         {
             try
             {
-                var context = await CreateContextAsync(connectionId);
+                var context = await CreateContextAsync(connectionId, cancellationToken);
 
                 var tablesTask = context.Client.MirroredDatabase.Mirroring
                     .GetTablesMirroringStatusAsync(workspaceId, mirroredDatabaseId)
-                    .ToListAsync()
+                    .ToListAsync(cancellationToken)
                     .AsTask();
-                var definitionTask = GetDefinitionInfoAsync(context, workspaceId, mirroredDatabaseId);
+                var definitionTask = GetDefinitionInfoAsync(context, workspaceId, mirroredDatabaseId, cancellationToken);
 
                 await Task.WhenAll(tablesTask, definitionTask);
 
@@ -169,35 +175,38 @@ namespace FabricExplorerBackend.Features.Fabric.MirroredDatabase
             }
             catch (Exception ex)
             {
-                return Fail<IEnumerable<Commons.Models.Responses.Fabric.MirroredDatabase.TableMirroringStatusResponse>>(ex);
+                return Fail<IEnumerable<Commons.Models.Responses.Fabric.MirroredDatabase.TableMirroringStatusResponse>>(ex, cancellationToken);
             }
         }
 
         // ---------------------------------------------------------------- Start / Stop
 
-        public Task<Result<MirroringActionResponse>> StartMirroringAsync(Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId)
-            => ChangeMirroringAsync(connectionId, workspaceId, mirroredDatabaseId, start: true);
+        public Task<Result<MirroringActionResponse>> StartMirroringAsync(Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken = default)
+            => ChangeMirroringAsync(connectionId, workspaceId, mirroredDatabaseId, start: true, cancellationToken);
 
-        public Task<Result<MirroringActionResponse>> StopMirroringAsync(Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId)
-            => ChangeMirroringAsync(connectionId, workspaceId, mirroredDatabaseId, start: false);
+        public Task<Result<MirroringActionResponse>> StopMirroringAsync(Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken = default)
+            => ChangeMirroringAsync(connectionId, workspaceId, mirroredDatabaseId, start: false, cancellationToken);
 
-        private async Task<Result<MirroringActionResponse>> ChangeMirroringAsync(Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId, bool start)
+        private async Task<Result<MirroringActionResponse>> ChangeMirroringAsync(
+            Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId, bool start, CancellationToken cancellationToken)
         {
             try
             {
-                var context = await CreateContextAsync(connectionId);
+                var context = await CreateContextAsync(connectionId, cancellationToken);
                 var action = start ? "start" : "stop";
 
-                // Chặn sớm các thao tác thừa để trả lỗi rõ ràng thay vì lỗi chung từ Fabric
-                var current = await GetMirroringStatusValueAsync(context, workspaceId, mirroredDatabaseId);
+                // Chặn sớm các thao tác thừa để trả lỗi rõ ràng thay vì lỗi chung từ Fabric (bước đọc: hủy được)
+                var current = await GetMirroringStatusValueAsync(context, workspaceId, mirroredDatabaseId, cancellationToken);
                 if (start && current is Domain.Enums.MirroringStatus.Running or Domain.Enums.MirroringStatus.Starting)
                     return Result<MirroringActionResponse>.Failure(ResultStatus.Conflict, $"Mirroring is already {current}.");
                 if (!start && current is Domain.Enums.MirroringStatus.Stopped or Domain.Enums.MirroringStatus.Stopping)
                     return Result<MirroringActionResponse>.Failure(ResultStatus.Conflict, $"Mirroring is already {current}.");
 
+                // Từ đây trở đi là THAY ĐỔI trạng thái: KHÔNG gắn với token của request. Nếu client ngắt kết nối giữa chừng,
+                // ta sẽ không biết Fabric đã nhận lệnh hay chưa, và có thể mất bản ghi operation mà worker cần để theo dõi.
                 var response = start
-                    ? await context.Client.MirroredDatabase.Mirroring.StartMirroringAsync(workspaceId, mirroredDatabaseId)
-                    : await context.Client.MirroredDatabase.Mirroring.StopMirroringAsync(workspaceId, mirroredDatabaseId);
+                    ? await context.Client.MirroredDatabase.Mirroring.StartMirroringAsync(workspaceId, mirroredDatabaseId, cancellationToken: CancellationToken.None)
+                    : await context.Client.MirroredDatabase.Mirroring.StopMirroringAsync(workspaceId, mirroredDatabaseId, cancellationToken: CancellationToken.None);
 
                 var result = new MirroringActionResponse
                 {
@@ -233,7 +242,7 @@ namespace FabricExplorerBackend.Features.Fabric.MirroredDatabase
             }
             catch (Exception ex)
             {
-                return Fail<MirroringActionResponse>(ex);
+                return Fail<MirroringActionResponse>(ex, cancellationToken);
             }
         }
 
@@ -244,30 +253,40 @@ namespace FabricExplorerBackend.Features.Fabric.MirroredDatabase
             public ResultStatus Status { get; } = status;
         }
 
-        private async Task<FabricContext> CreateContextAsync(Guid connectionId)
-        {
-            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId)
+        private async Task<Domain.Entities.Connection> LoadConnectionAsync(Guid connectionId, CancellationToken cancellationToken)
+            => await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken)
                 ?? throw new ServiceFailure(ResultStatus.NotFound, "connection not found");
 
-            return await fabricContextFactory.CreateFabricContextAsync(connection)
+        private async Task<FabricContext> CreateContextAsync(Domain.Entities.Connection connection, CancellationToken cancellationToken)
+            => await fabricContextFactory.CreateFabricContextWithoutTokenAsync(connection, cancellationToken)
                 ?? throw new ServiceFailure(ResultStatus.BadRequest, "can not create context");
+
+        private async Task<FabricContext> CreateContextAsync(Guid connectionId, CancellationToken cancellationToken)
+            => await CreateContextAsync(await LoadConnectionAsync(connectionId, cancellationToken), cancellationToken);
+
+        private static Result<T> Fail<T>(Exception ex, CancellationToken cancellationToken)
+        {
+            // Client đã hủy request: để ASP.NET dừng lặng lẽ thay vì đổi thành lỗi 500
+            if (ex is OperationCanceledException && cancellationToken.IsCancellationRequested)
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex).Throw();
+
+            return ex switch
+            {
+                ServiceFailure failure => Result<T>.Failure(failure.Status, failure.Message),
+                AuthenticationFailedException => Result<T>.Failure(ResultStatus.BadRequest, ex.Message),
+                RequestFailedException { Status: 404 } => Result<T>.Failure(ResultStatus.NotFound, "Mirrored database or workspace not found, or the connection can not access it."),
+                RequestFailedException { Status: 401 or 403 } => Result<T>.Failure(ResultStatus.Forbidden, "The connection does not have access to this workspace."),
+                RequestFailedException { Status: 400 } => Result<T>.Failure(ResultStatus.BadRequest, ex.Message),
+                _ => Result<T>.Failure(ResultStatus.InternalError, ex.Message)
+            };
         }
 
-        private static Result<T> Fail<T>(Exception ex) => ex switch
-        {
-            ServiceFailure failure => Result<T>.Failure(failure.Status, failure.Message),
-            AuthenticationFailedException => Result<T>.Failure(ResultStatus.BadRequest, ex.Message),
-            RequestFailedException { Status: 404 } => Result<T>.Failure(ResultStatus.NotFound, "Mirrored database or workspace not found, or the connection can not access it."),
-            RequestFailedException { Status: 401 or 403 } => Result<T>.Failure(ResultStatus.Forbidden, "The connection does not have access to this workspace."),
-            RequestFailedException { Status: 400 } => Result<T>.Failure(ResultStatus.BadRequest, ex.Message),
-            _ => Result<T>.Failure(ResultStatus.InternalError, ex.Message)
-        };
-
-        private async Task<Domain.Enums.MirroringStatus> GetMirroringStatusValueAsync(FabricContext context, Guid workspaceId, Guid mirroredDatabaseId)
+        private async Task<Domain.Enums.MirroringStatus> GetMirroringStatusValueAsync(
+            FabricContext context, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken)
         {
             try
             {
-                var response = await context.Client.MirroredDatabase.Mirroring.GetMirroringStatusAsync(workspaceId, mirroredDatabaseId);
+                var response = await context.Client.MirroredDatabase.Mirroring.GetMirroringStatusAsync(workspaceId, mirroredDatabaseId, cancellationToken: cancellationToken);
                 return mapper.MapStatus(response.Value.Status);
             }
             catch (RequestFailedException ex)
@@ -277,58 +296,40 @@ namespace FabricExplorerBackend.Features.Fabric.MirroredDatabase
             }
         }
 
-        // mirroring.json cho biết nguồn và schema đích; definition là call nặng nên cache lại
-        private async Task<MirroringDefinitionInfo?> GetDefinitionInfoAsync(FabricContext context, Guid workspaceId, Guid mirroredDatabaseId)
+        // mirroring.json cho biết nguồn và schema đích. Definition là lời gọi nặng nhất và gần như không đổi,
+        // nên cache lâu (mặc định 60 phút) và gộp các lời gọi đồng thời (cùng cơ chế với danh sách).
+        private async Task<MirroringDefinitionInfo?> GetDefinitionInfoAsync(
+            FabricContext context, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken)
         {
-            var cacheKey = cacheService.CreateCacheKey("mirrored-db-definition", workspaceId.ToString(), mirroredDatabaseId.ToString());
-            var cached = await TryGetCachedDefinitionAsync(cacheKey);
-            if (cached != null)
-                return cached;
+            var ttl = TimeSpan.FromMinutes(configuration.GetValue("Fabric:MirroringDefinitionCacheMinutes", 60));
+            var key = cachedFetcher.CreateKey("mirrored-db-definition", workspaceId.ToString(), mirroredDatabaseId.ToString());
 
             try
             {
-                var response = await context.Client.MirroredDatabase.Items.GetMirroredDatabaseDefinitionAsync(workspaceId, mirroredDatabaseId);
-                var payload = response.Value.Definition?.Parts?
-                    .FirstOrDefault(part => part.Path.Equals(MirroringDefinitionFileName, StringComparison.OrdinalIgnoreCase))?
-                    .Payload;
+                return await cachedFetcher.GetOrFetchAsync<MirroringDefinitionInfo?>(
+                    key, ttl,
+                    async ct =>
+                    {
+                        var response = await context.Client.MirroredDatabase.Items
+                            .GetMirroredDatabaseDefinitionAsync(workspaceId, mirroredDatabaseId, cancellationToken: ct);
+                        var payload = response.Value.Definition?.Parts?
+                            .FirstOrDefault(part => part.Path.Equals(MirroringDefinitionFileName, StringComparison.OrdinalIgnoreCase))?
+                            .Payload;
 
-                var info = MirroringDefinitionInfo.Parse(payload);
-                if (info != null)
-                    await TrySetCachedDefinitionAsync(cacheKey, info);
-                return info;
+                        // null (không đọc được) sẽ không được cache
+                        return MirroringDefinitionInfo.Parse(payload);
+                    },
+                    cancellationToken: cancellationToken);
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                // Thiếu thông tin nguồn không nên làm hỏng cả danh sách
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Thiếu thông tin nguồn không nên làm hỏng cả response
                 logger.LogWarning(ex, "Cannot read definition of mirrored database {MirroredDatabaseId}.", mirroredDatabaseId);
                 return null;
-            }
-        }
-
-        // CacheService (Redis) chỉ lưu chuỗi nên phải tự serialize; lỗi cache không được làm hỏng request
-        private async Task<MirroringDefinitionInfo?> TryGetCachedDefinitionAsync(string cacheKey)
-        {
-            try
-            {
-                var raw = (await cacheService.GetValueAsync(cacheKey))?.ToString();
-                return string.IsNullOrEmpty(raw) ? null : JsonSerializer.Deserialize<MirroringDefinitionInfo>(raw);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Cannot read mirroring definition from cache.");
-                return null;
-            }
-        }
-
-        private async Task TrySetCachedDefinitionAsync(string cacheKey, MirroringDefinitionInfo info)
-        {
-            try
-            {
-                await cacheService.SetValueAsync(cacheKey, JsonSerializer.Serialize(info), DefinitionCacheDuration);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Cannot write mirroring definition to cache.");
             }
         }
 

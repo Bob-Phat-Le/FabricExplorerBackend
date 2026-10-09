@@ -1,4 +1,5 @@
-﻿using FabricExplorerBackend.Features.Token;
+﻿using FabricExplorerBackend.Commons.Models.Responses.Fabric.Exceptions;
+using FabricExplorerBackend.Features.Token;
 
 namespace FabricExplorerBackend.Features.Fabric.FabricRestClient
 {
@@ -12,13 +13,22 @@ namespace FabricExplorerBackend.Features.Fabric.FabricRestClient
 
         public async Task<TResponse?> GetAsync<TResponse>(string endpoint, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection, scope);
+            var token = await tokenService.GetOrCreateTokenAsync(connection, scope, cancellationToken);
 
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             using var response = await httpClient.GetAsync(endpoint, cancellationToken);
 
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                response.EnsureSuccessStatusCode();
+            }
+            catch (HttpRequestException)
+            {
+                //var body = await response.Content.ReadFromJsonAsync<FabricErrorResponse>();
+                //throw JsonSerializer.Deserialize<FabricErrorResponse>(body!)!;
+                throw await response.Content.ReadFromJsonAsync<FabricErrorResponse>();
+            }
 
             return await response.Content
                 .ReadFromJsonAsync<TResponse>(cancellationToken);
@@ -26,7 +36,7 @@ namespace FabricExplorerBackend.Features.Fabric.FabricRestClient
 
         public async Task<TResponse?> PostAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection, scope);
+            var token = await tokenService.GetOrCreateTokenAsync(connection, scope, cancellationToken);
 
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
@@ -40,7 +50,7 @@ namespace FabricExplorerBackend.Features.Fabric.FabricRestClient
 
         public async Task<TResponse?> PatchAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection, scope);
+            var token = await tokenService.GetOrCreateTokenAsync(connection, scope, cancellationToken);
 
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
@@ -54,7 +64,7 @@ namespace FabricExplorerBackend.Features.Fabric.FabricRestClient
 
         public async Task DeleteAsync(string endpoint, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection, scope);
+            var token = await tokenService.GetOrCreateTokenAsync(connection, scope, cancellationToken);
 
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 

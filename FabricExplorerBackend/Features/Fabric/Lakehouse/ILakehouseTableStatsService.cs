@@ -13,8 +13,10 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
     {
         Task<IReadOnlyDictionary<string, TableStats>> GetStatsAsync(
             Domain.Entities.Connection connection,
+            Guid workspaceId,
             Guid lakehouseId,
             IEnumerable<FabricTableResponse> tables,
+            bool bypassCache = false,
             CancellationToken cancellationToken = default);
     }
 }

@@ -9,7 +9,7 @@ using FabricExplorerBackend.Commons.Models.Responses.Paginations;
 using FabricExplorerBackend.Domain.Enums;
 using FabricExplorerBackend.Features.Cache;
 using FabricExplorerBackend.Features.Fabric.Context;
-using FabricExplorerBackend.Helpers;
+using FabricExplorerBackend.Features.Token;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Securities;
 using System.Security.Claims;
@@ -17,8 +17,9 @@ using System.Security.Claims;
 namespace FabricExplorerBackend.Features.Connection
 {
     public class ConnectionService(
+        IConfiguration configuration,
+        ITokenService tokenService,
         ICacheService cacheService,
-        ICredentialHelper credentialHelper,
         IHttpContextAccessor httpContext,
         IFabricContextFactory contextFactory,
         ISecretProtector secretProtector,
@@ -27,11 +28,11 @@ namespace FabricExplorerBackend.Features.Connection
     {
         public async Task<Result<PagedResponse<IEnumerable<ConnectionResponse>>>> GetAllConnectionsAsync(PaginationRequest? paginationRequest)
         {
-            if (paginationRequest != null && !paginationRequest.IsValid())
-                return Result<PagedResponse<IEnumerable<ConnectionResponse>>>.Failure(ResultStatus.BadRequest, "Invalid pagination request");
+            if (paginationRequest != null)
+                paginationRequest.Validate();
 
-            var page = (int)paginationRequest?.Page!;
-            var pageSize = (int)paginationRequest?.PageSize!;
+            var page = paginationRequest?.Page ?? 1;
+            var pageSize = paginationRequest!.PageSize;
 
             var (connectionList, count) = await unitOfWork.ConnectionRepository.GetAllAsync((page - 1) * pageSize, pageSize);
 
@@ -39,7 +40,8 @@ namespace FabricExplorerBackend.Features.Connection
             {
                 Page = page,
                 PageSize = pageSize,
-                TotalItems = connectionList.Count(),
+                TotalItems = count,
+                ItemsCount = connectionList.Count(),
                 TotalPages = (int)Math.Ceiling((decimal)count / pageSize)
             };
 
@@ -64,18 +66,18 @@ namespace FabricExplorerBackend.Features.Connection
             if (connection == null)
                 return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "Connection not found");
 
+            if (request.WorkspaceId.HasValue && request.WorkspaceId != connection.WorkspaceId)
+            {
+                var conn = await unitOfWork.ConnectionRepository.CheckDuplicateWorkspaceIdAsync((Guid)request.WorkspaceId!);
+                if (conn != null && conn.Id != connection.Id)
+                    return Result<ConfirmationResponse>.Failure(ResultStatus.Conflict, "Workspace id is duplicated");
+            }
+
             if (!string.IsNullOrEmpty(request.ClientSecret))
                 request.ClientSecret = secretProtector.Protect(request.ClientSecret);
             connectionMapper.Map(request, connection);
             connection.UpdatedAt = DateTimeOffset.UtcNow;
             connection.UpdatedBy = null; // You can set this to the current user if you have authentication implemented
-
-            if (request.WorkspaceId != Guid.Empty)
-            {
-                var conn = await unitOfWork.ConnectionRepository.CheckDuplicateWorkspaceIdAsync((Guid)request.WorkspaceId!);
-                if (conn != null && conn.Id != connection.Id)
-                    return Result<ConfirmationResponse>.Failure(ResultStatus.ValidationError, "Workspace id is duplicated");
-            }
 
             await unitOfWork.ConnectionRepository.Update(connection);
             var lineChanges = await unitOfWork.SaveChangesAsync();
@@ -91,32 +93,76 @@ namespace FabricExplorerBackend.Features.Connection
 
         public async Task<Result<ConfirmationResponse>> TestConnection(Guid connectionId)
         {
+            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
+            if (connection == null)
+                return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "Connection not found");
+
+            string accessToken;
             try
             {
-                var connection = await credentialHelper.GetCredentialWithConnectionId(connectionId);
-                if (connection == null)
-                    return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "Connection not found");
+                accessToken = await tokenService.CreateTokenAsync(
+                    connection,
+                    configuration.GetValue<string>("Scopes:api.fabric", "https://api.fabric.microsoft.com/.default")!);
+            }
+            catch (Exception ex)
+            {
+                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest,
+                [
+                    "Failed to get an access token (check tenant id, client id, client secret).",
+                    $"{ex.GetType().Name}: {ex.Message}"
+                ]);
+            }
 
-                var context = await contextFactory.CreateFabricContextAsync(connection);
+            try
+            {
+                var context = await contextFactory.CreateFabricContextWithTokenAsync(connection, accessToken);
                 if (context == null)
                     return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "Can not create context with this connection id");
 
-                var response = await context.Client.Core.Workspaces.GetWorkspaceAsync(context.WorkspaceId);
+                var workspace = (await context.Client.Core.Workspaces.GetWorkspaceAsync(context.WorkspaceId)).Value;
 
-                if (response == null)
-                    return Result<ConfirmationResponse>.Failure(ResultStatus.NotFound, "Workspace not found");
+                if (workspace.Id != connection.WorkspaceId)
+                    return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest,
+                        $"Fabric returned workspace {workspace.Id} but {connection.WorkspaceId} is configured");
 
-                if (response != null && response.Value.Id == connection.WorkspaceId)
-                    return Result<ConfirmationResponse>.Success(new ConfirmationResponse() { Message = "Connection check succeeded" });
-                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, "Failed to check connection");
+                return Result<ConfirmationResponse>.Success(new ConfirmationResponse
+                {
+                    Message = $"Connection check succeeded. Workspace: {workspace.DisplayName} ({workspace.Id})"
+                });
             }
-            catch (AuthenticationFailedException ex)
+            catch (RequestFailedException ex)
             {
-                return Result<ConfirmationResponse>.Failure(ResultStatus.BadRequest, ex.Message);
+                var status = ex.Status switch
+                {
+                    401 or 403 => ResultStatus.Forbidden,
+                    404 => ResultStatus.NotFound,
+                    _ => ResultStatus.BadRequest
+                };
+
+                var hint = ex.Status switch
+                {
+                    403 => "The service principal is not allowed. Add it to the workspace and enable \"Service principals can use Fabric APIs\".",
+                    404 => "Workspace does not exist, or the service principal is not a member of it.",
+                    _ => null
+                };
+
+                var errors = new List<string>
+                {
+                    "Calling Fabric failed.",
+                    $"HTTP {ex.Status}, error code: {ex.ErrorCode ?? "n/a"}",
+                    ex.Message
+                };
+                if (hint != null) errors.Add($"Hint: {hint}");
+
+                return Result<ConfirmationResponse>.Failure(status, errors);
             }
-            catch (RequestFailedException ex) when (ex.Status is 401 or 403)
+            catch (Exception ex)
             {
-                return Result<ConfirmationResponse>.Failure(ResultStatus.Forbidden, "The connection is not allowed to list workspaces.");
+                return Result<ConfirmationResponse>.Failure(ResultStatus.InternalError,
+                [
+                    "Calling Fabric failed.",
+                    $"{ex.GetType().Name}: {ex.Message}"
+                ]);
             }
         }
 
@@ -129,7 +175,7 @@ namespace FabricExplorerBackend.Features.Connection
 
             var conn = await unitOfWork.ConnectionRepository.CheckDuplicateWorkspaceIdAsync(request.WorkspaceId);
             if (conn != null)
-                return Result<ConfirmationResponse>.Failure(ResultStatus.ValidationError, "Workspace id is duplicated");
+                return Result<ConfirmationResponse>.Failure(ResultStatus.Conflict, "Workspace id is duplicated");
 
             await unitOfWork.ConnectionRepository.AddAsync(connection);
             var lineChanges = await unitOfWork.SaveChangesAsync();

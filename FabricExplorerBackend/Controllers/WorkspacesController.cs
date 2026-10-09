@@ -1,5 +1,6 @@
 ﻿using FabricExplorerBackend.Commons;
 using FabricExplorerBackend.Commons.Models.Responses.Workspace;
+using FabricExplorerBackend.Extensions;
 using FabricExplorerBackend.Features.Fabric.Workspace;
 using FabricExplorerBackend.Features.Result;
 using Microsoft.AspNetCore.Mvc;
@@ -10,11 +11,13 @@ namespace FabricExplorerBackend.Controllers
     [ApiController]
     public class WorkspacesController(IWorkspaceService workspaceService) : ControllerBase
     {
+        // Frontend gọi endpoint này trước, rồi dùng từng workspaceId cho /api/workspaces/{id}/Lakehouses|Warehouses|MirroredDatabases
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<WorkspaceListItemResponse>>>> GetAllWorkspaces(
-            [FromHeader(Name = "X-Connection-Id")] Guid connectionId)
+            [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
+            CancellationToken cancellationToken)
         {
-            var response = await workspaceService.GetAllWorkspacesAsync(connectionId);
+            var response = await workspaceService.GetAllWorkspacesAsync(connectionId, Request.ShouldBypassCache(), cancellationToken);
             var statusCode = ResultMapper.ToHttpStatusCode(response.ResultStatus);
             if (response.IsSuccess)
                 return Ok(new ApiResponse<IEnumerable<WorkspaceListItemResponse>>(statusCode, response.Data));
