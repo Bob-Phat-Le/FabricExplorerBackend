@@ -9,7 +9,7 @@ namespace FabricExplorerBackend.Domain.Entities
         public DateTimeOffset? UpdatedAt { get; set; }
         public Guid CreatedBy { get; set; }
         public Guid? UpdatedBy { get; set; }
-        public bool IsDeleted { get; set; }
+        public bool IsDeleted => DeletedAt.HasValue;
         public DateTimeOffset? DeletedAt { get; set; }
 
         // Connection properties

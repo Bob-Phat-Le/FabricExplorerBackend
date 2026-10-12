@@ -4,6 +4,6 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interf
 {
     public interface IUserRepository : IGenericRepository<User>
     {
-        Task<User?> GetByIdWithConnectionAsync(Guid userId, bool trackChanges = false);
+        Task<User?> GetByIdWithConnectionAsync(Guid userId, bool trackChanges = false, CancellationToken cancellationToken = default);
     }
 }

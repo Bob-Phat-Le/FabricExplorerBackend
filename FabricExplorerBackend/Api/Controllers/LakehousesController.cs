@@ -49,7 +49,8 @@ namespace FabricExplorerBackend.Api.Controllers
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
             Guid lakehouseId,
             string tableName,
-            [FromBody] LoadTableRequest request)
+            [FromBody] LoadTableRequest request,
+            CancellationToken cancellationToken = default)
         {
             var response = await lakehouseService.LoadTableAsync(connectionId, lakehouseId, tableName, request);
             var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);

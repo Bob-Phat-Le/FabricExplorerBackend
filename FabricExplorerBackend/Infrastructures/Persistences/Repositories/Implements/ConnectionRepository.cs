@@ -7,21 +7,20 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
 {
     public class ConnectionRepository(FabricExplorerDbContext context) : IConnectionRepository
     {
-        public async Task AddAsync(Connection entity)
+        public Task AddAsync(Connection entity, CancellationToken cancellationToken = default)
         {
-            await context.Connections.AddAsync(entity);
+            return context.Connections.AddAsync(entity, cancellationToken).AsTask();
         }
 
-        public async Task<Connection?> CheckDuplicateWorkspaceIdAsync(Guid workspaceId)
+        public Task<Connection?> CheckDuplicateWorkspaceIdAsync(Guid workspaceId, CancellationToken cancellationToken = default)
         {
-            return await context.Connections.FirstOrDefaultAsync(c => !c.IsDeleted && c.WorkspaceId == workspaceId);
+            return context.Connections.FirstOrDefaultAsync(c => !c.IsDeleted && c.WorkspaceId == workspaceId, cancellationToken);
         }
 
-        public async Task Delete(Connection entity)
+        public void Delete(Connection entity)
         {
             if (entity is ISoftDeletable softDeletableEntity)
             {
-                softDeletableEntity.IsDeleted = true;
                 softDeletableEntity.DeletedAt = DateTimeOffset.UtcNow;
                 context.Connections.Update(entity);
             }
@@ -29,22 +28,17 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
                 context.Connections.Remove(entity);
         }
 
-        public async Task DeleteAll()
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<(IEnumerable<Connection>, int)> GetAllAsync(int skip, int take, bool trackChanges = false)
+        public async Task<(List<Connection>, int)> GetAllAsync(int skip, int take, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
             var query = context.Connections.AsQueryable().Where(c => !c.IsDeleted);
-            var count = await query.CountAsync();
+            var count = await query.CountAsync(cancellationToken);
             if (!trackChanges)
                 query = query.AsNoTracking();
             if (skip > 0)
                 query = query.Skip(skip);
             if (take > 0)
                 query = query.Take(take);
-            var result = await query.ToListAsync();
+            var result = await query.ToListAsync(cancellationToken);
             return (result, count);
         }
 
@@ -56,7 +50,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             return await query.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         }
 
-        public async Task Update(Connection entity)
+        public void Update(Connection entity)
         {
             context.Connections.Update(entity);
         }

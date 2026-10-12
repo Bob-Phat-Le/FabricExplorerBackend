@@ -17,7 +17,7 @@ namespace FabricExplorerBackend.Api.Controllers
     public class ConnectionsController(IConnectionService connectionService) : ControllerBase
     {
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>>> GetAllConnections([FromQuery] PaginationRequest? paginationRequest)
+        public async Task<ActionResult<ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>>> GetAllConnections([FromQuery] PaginationRequest? paginationRequest, CancellationToken cancellationToken = default)
         {
             var response = await connectionService.GetAllConnectionsAsync(paginationRequest);
             var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
@@ -27,7 +27,7 @@ namespace FabricExplorerBackend.Api.Controllers
         }
 
         [HttpGet("{connectionId}")]
-        public async Task<ActionResult<ApiResponse<ConnectionResponse>>> GetConnectionById(Guid connectionId)
+        public async Task<ActionResult<ApiResponse<ConnectionResponse>>> GetConnectionById(Guid connectionId, CancellationToken cancellationToken = default)
         {
             var response = await connectionService.GetConnectionByIdAsync(connectionId);
             var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
@@ -37,7 +37,7 @@ namespace FabricExplorerBackend.Api.Controllers
         }
 
         [HttpGet("active")]
-        public async Task<ActionResult<ApiResponse<ConnectionResponse>>> GetActiveConnection()
+        public async Task<ActionResult<ApiResponse<ConnectionResponse>>> GetActiveConnection(CancellationToken cancellationToken = default)
         {
             var response = await connectionService.GetActiveConnectionAsync();
             var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
@@ -47,7 +47,7 @@ namespace FabricExplorerBackend.Api.Controllers
         }
 
         [HttpPatch("{connectionId}")]
-        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> UpdateConnection(Guid connectionId, [FromBody] UpdateConnectionRequest request)
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> UpdateConnection(Guid connectionId, [FromBody] UpdateConnectionRequest request, CancellationToken cancellationToken = default)
         {
             var response = await connectionService.UpdateConnection(connectionId, request);
             var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
@@ -57,7 +57,7 @@ namespace FabricExplorerBackend.Api.Controllers
         }
 
         [HttpDelete("{connectionId}")]
-        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> DeleteConnection(Guid connectionId)
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> DeleteConnection(Guid connectionId, CancellationToken cancellationToken = default)
         {
             var response = await connectionService.DeleteConnection(connectionId);
             var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
@@ -67,7 +67,7 @@ namespace FabricExplorerBackend.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> CreateConnection(CreateConnectionRequest request)
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> CreateConnection(CreateConnectionRequest request, CancellationToken cancellationToken = default)
         {
             var response = await connectionService.CreateConnectionAsync(request);
             var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
@@ -77,7 +77,7 @@ namespace FabricExplorerBackend.Api.Controllers
         }
 
         [HttpPost("{connectionId}/test")]
-        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> TestConnection(Guid connectionId)
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> TestConnection(Guid connectionId, CancellationToken cancellationToken = default)
         {
             var response = await connectionService.TestConnection(connectionId);
             var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
@@ -87,7 +87,7 @@ namespace FabricExplorerBackend.Api.Controllers
         }
 
         [HttpPost("{connectionId}/active")]
-        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId)
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId, CancellationToken cancellationToken = default)
         {
             var response = await connectionService.ActiveConnection(connectionId);
             var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);

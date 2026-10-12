@@ -10,24 +10,24 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
         IFabricOperationRepository fabricOperationRepository) : IUnitOfWork
     {
 
-        public async Task CommitTransaction()
+        public async Task CommitTransaction(CancellationToken cancellationToken = default)
         {
-            await context.Database.CommitTransactionAsync();
+            await context.Database.CommitTransactionAsync(cancellationToken);
         }
 
-        public async Task RollbackTransaction()
+        public async Task RollbackTransaction(CancellationToken cancellationToken = default)
         {
-            await context.Database.RollbackTransactionAsync();
+            await context.Database.RollbackTransactionAsync(cancellationToken);
         }
 
-        public async Task<int> SaveChangesAsync()
+        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            return await context.SaveChangesAsync();
+            return await context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<IDbContextTransaction> StartTransaction()
+        public async Task<IDbContextTransaction> StartTransaction(CancellationToken cancellationToken = default)
         {
-            return await context.Database.BeginTransactionAsync();
+            return await context.Database.BeginTransactionAsync(cancellationToken);
         }
         public void Dispose()
         {

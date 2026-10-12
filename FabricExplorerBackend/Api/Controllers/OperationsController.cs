@@ -12,7 +12,7 @@ namespace FabricExplorerBackend.Api.Controllers
     {
         // Theo dõi trạng thái một Fabric LRO (do worker cập nhật) bằng OperationId mà API start/stop trả về
         [HttpGet("{operationId:guid}")]
-        public async Task<ActionResult<ApiResponse<FabricOperationResponse>>> GetOperation(Guid operationId)
+        public async Task<ActionResult<ApiResponse<FabricOperationResponse>>> GetOperation(Guid operationId, CancellationToken cancellationToken = default)
         {
             var response = await fabricOperationService.GetFabricOperationByIdAsync(operationId);
             var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
