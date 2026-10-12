@@ -30,6 +30,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Commons\Models\Responses\Fabric\Exceptions\" />
+    <Folder Include="Commons\Models\Responses\Fabric\FabricOperation\" />
+    <Folder Include="Commons\Models\Responses\Fabric\Lakehouse\" />
+    <Folder Include="Commons\Models\Responses\Fabric\MirroredDatabase\" />
+    <Folder Include="Commons\Models\Responses\Fabric\Warehouse\" />
+    <Folder Include="Commons\Models\Responses\Fabric\Workspace\" />
     <Folder Include="Infrastructures\Persistences\Migrations\" />
   </ItemGroup>
 
