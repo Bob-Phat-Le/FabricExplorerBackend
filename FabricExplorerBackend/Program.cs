@@ -1,4 +1,4 @@
-using FabricExplorerBackend.Api.ExceptionHandling;
+using FabricExplorerBackend.Api.Extensions;
 using FabricExplorerBackend.Api.Startup;
 using FabricExplorerBackend.Api.TestAuthenticationHandler;
 using FabricExplorerBackend.Infrastructures.Persistences;
@@ -70,6 +70,7 @@ builder.Services.AddSingleton<IDataProtector>(sp =>
 builder.Services.AddRepositories();
 builder.Services.AddServices();
 builder.Services.AddMappers();
+builder.Services.AddGlobalExceptionHandler();
 
 var app = builder.Build();
 await app.MigrateDatabaseAsync();
@@ -87,7 +88,7 @@ app.UseHttpsRedirection();
 app.UseCors("MyAllowSpecificOrigin");
 
 //app.UseRequestResponseLogging();
-app.UseGlobalExceptionHandling();
+app.UseExceptionHandler();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -25,7 +25,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
 
         public async Task<(List<User>, int)> GetAllAsync(int skip, int take, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
-            var query = context.Users.AsQueryable().Where(u => !u.IsDeleted);
+            var query = context.Users.AsQueryable().Where(u => u.DeletedAt == null);
             var count = await query.CountAsync(cancellationToken);
             if (!trackChanges)
                 query.AsNoTracking();
@@ -39,18 +39,18 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
 
         public Task<User?> GetByIdAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
-            var query = context.Users.AsQueryable();
+            var query = context.Users.AsQueryable().Where(u => u.DeletedAt == null);
             if (!trackChanges)
                 query.AsNoTracking();
-            return query.FirstOrDefaultAsync(u => !u.IsDeleted && u.Id == id, cancellationToken);
+            return query.FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
         }
 
         public Task<User?> GetByIdWithConnectionAsync(Guid userId, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
-            var query = context.Users.AsQueryable().Include(u => u.ActiveConnection);
+            var query = context.Users.AsQueryable().Where(u => u.DeletedAt == null).Include(u => u.ActiveConnection);
             if (!trackChanges)
                 query.AsNoTracking();
-            return query.FirstOrDefaultAsync(u => !u.IsDeleted && u.Id == userId, cancellationToken);
+            return query.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         }
 
         public void Update(User entity)

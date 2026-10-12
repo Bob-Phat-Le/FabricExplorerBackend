@@ -1,22 +1,19 @@
-﻿using FabricExplorerBackend.Commons.Results;
+﻿using FabricExplorerBackend.Api.Contracts;
+using FabricExplorerBackend.Commons.Results;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FabricExplorerBackend.Api.Extensions
 {
-    public class ResultExtensions
+    public static class ResultExtensions
     {
-        public static int ToHttpStatusCode(ErrorKind status)
+        public static ActionResult<ApiResponse<T>> ToActionResult<T>(this Result<T> result, ControllerBase c)
         {
-            return status switch
-            {
-                ErrorKind.Success => StatusCodes.Status200OK,
-                ErrorKind.NotFound => StatusCodes.Status404NotFound,
-                ErrorKind.ValidationError => StatusCodes.Status400BadRequest,
-                ErrorKind.Conflict => StatusCodes.Status409Conflict,
-                ErrorKind.Unauthorized => StatusCodes.Status401Unauthorized,
-                ErrorKind.Forbidden => StatusCodes.Status403Forbidden,
+            if (result.IsSuccess) return c.Ok(ApiResponse<T>.Ok(result.Data));
 
-                _ => StatusCodes.Status500InternalServerError
-            };
+            var e = result.Errors[0];
+            var status = e.Kind.ToStatusCode();
+            c.HttpContext.Items[HttpContextKeys.ErrorCode] = e.Code;   // để request log hiện ErrorCode
+            return c.StatusCode(status, ApiResponse<T>.Fail(status, new ApiError(e.Code, e.Message, c.HttpContext.TraceIdentifier)));
         }
     }
 }

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FabricExplorerBackend.Migrations
 {
     [DbContext(typeof(FabricExplorerDbContext))]
-    [Migration("20260928104537_ThirdMigration_RemoveUserPreference")]
-    partial class ThirdMigration_RemoveUserPreference
+    [Migration("20261012092608_FirstMigrationAfterRemovingAllMigrations")]
+    partial class FirstMigrationAfterRemovingAllMigrations
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace FabricExplorerBackend.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("FabricExplorerBackend.Entities.Connection", b =>
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.Connection", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -47,9 +47,6 @@ namespace FabricExplorerBackend.Migrations
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -68,6 +65,10 @@ namespace FabricExplorerBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("WorkspaceId")
+                        .IsUnique()
+                        .HasFilter("\"DeletedAt\" IS NULL");
+
                     b.ToTable("Connections");
 
                     b.HasData(
@@ -78,7 +79,6 @@ namespace FabricExplorerBackend.Migrations
                             ClientSecret = "8f3e1a2b-9c4d-4e5f-8a1b-3c5d7e9f2a4b",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 28, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             CreatedBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            IsDeleted = false,
                             Name = "Production Fabric",
                             TenantId = new Guid("72f988bf-86f1-41af-91ab-2d7cd011db47"),
                             WorkspaceId = new Guid("12345678-abcd-1234-abcd-1234567890ab")
@@ -90,14 +90,67 @@ namespace FabricExplorerBackend.Migrations
                             ClientSecret = "secret",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 28, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             CreatedBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            IsDeleted = false,
                             Name = "Staging Analytics",
                             TenantId = new Guid("72f988bf-86f1-41af-91ab-2d7cd011db47"),
                             WorkspaceId = new Guid("87654321-abcd-4321-abcd-0987654321ba")
                         });
                 });
 
-            modelBuilder.Entity("FabricExplorerBackend.Entities.User", b =>
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.FabricOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorCode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("FabricOperationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FabricOperationUrl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("LastPolledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("NextPollAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OperationType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("PercentComplete")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ResourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Operations");
+                });
+
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -118,9 +171,6 @@ namespace FabricExplorerBackend.Migrations
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -146,14 +196,13 @@ namespace FabricExplorerBackend.Migrations
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 28, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             CreatedBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             Email = "john.doe@company.com",
-                            IsDeleted = false,
                             UserName = "John Doe"
                         });
                 });
 
-            modelBuilder.Entity("FabricExplorerBackend.Entities.User", b =>
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.User", b =>
                 {
-                    b.HasOne("FabricExplorerBackend.Entities.Connection", "ActiveConnection")
+                    b.HasOne("FabricExplorerBackend.Domain.Entities.Connection", "ActiveConnection")
                         .WithMany("Users")
                         .HasForeignKey("ActiveConnectionId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -162,7 +211,7 @@ namespace FabricExplorerBackend.Migrations
                     b.Navigation("ActiveConnection");
                 });
 
-            modelBuilder.Entity("FabricExplorerBackend.Entities.Connection", b =>
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.Connection", b =>
                 {
                     b.Navigation("Users");
                 });

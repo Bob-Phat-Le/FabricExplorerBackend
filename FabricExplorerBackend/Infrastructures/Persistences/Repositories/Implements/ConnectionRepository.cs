@@ -14,7 +14,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
 
         public Task<Connection?> CheckDuplicateWorkspaceIdAsync(Guid workspaceId, CancellationToken cancellationToken = default)
         {
-            return context.Connections.FirstOrDefaultAsync(c => !c.IsDeleted && c.WorkspaceId == workspaceId, cancellationToken);
+            return context.Connections.OrderBy(c => c.CreatedAt).FirstOrDefaultAsync(c => c.DeletedAt == null && c.WorkspaceId == workspaceId, cancellationToken);
         }
 
         public void Delete(Connection entity)
@@ -30,7 +30,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
 
         public async Task<(List<Connection>, int)> GetAllAsync(int skip, int take, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
-            var query = context.Connections.AsQueryable().Where(c => !c.IsDeleted);
+            var query = context.Connections.AsQueryable().Where(c => c.DeletedAt == null);
             var count = await query.CountAsync(cancellationToken);
             if (!trackChanges)
                 query = query.AsNoTracking();
@@ -38,16 +38,16 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
                 query = query.Skip(skip);
             if (take > 0)
                 query = query.Take(take);
-            var result = await query.ToListAsync(cancellationToken);
+            var result = await query.OrderBy(c => c.CreatedAt).ToListAsync(cancellationToken);
             return (result, count);
         }
 
         public async Task<Connection?> GetByIdAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
-            var query = context.Connections.AsQueryable().Where(c => !c.IsDeleted);
+            var query = context.Connections.AsQueryable().Where(c => c.DeletedAt == null);
             if (!trackChanges)
                 query = query.AsNoTracking();
-            return await query.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+            return await query.OrderBy(c => c.CreatedAt).FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         }
 
         public void Update(Connection entity)

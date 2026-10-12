@@ -28,7 +28,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             if (!trackChanges)
                 query = query.AsNoTracking();
 
-            return query.Where(op => op.Status == FabricOperationStatus.Pending || op.Status == FabricOperationStatus.Running).ToListAsync(cancellationToken);
+            return query.Where(op => op.Status == FabricOperationStatus.Pending || op.Status == FabricOperationStatus.Running).OrderBy(c => c.CreatedAt).ToListAsync(cancellationToken);
         }
 
         public Task<FabricOperation?> GetByIdAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default)
@@ -37,7 +37,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             if (!trackChanges)
                 query = query.AsNoTracking();
 
-            return query.FirstOrDefaultAsync(op => op.Id == id, cancellationToken);
+            return query.OrderBy(c => c.CreatedAt).FirstOrDefaultAsync(op => op.Id == id, cancellationToken);
         }
 
         public void Update(FabricOperation entity)

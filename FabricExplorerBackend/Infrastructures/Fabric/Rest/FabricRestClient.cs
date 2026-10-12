@@ -1,5 +1,6 @@
 ﻿using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Infrastructures.Identity;
+using System.Text.Json;
 
 namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
 {
@@ -9,68 +10,86 @@ namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
         ITokenService tokenService,
         Domain.Entities.Connection connection) : IFabricRestClient
     {
-        private string scope = configuration.GetValue<string>("Scopes:api.fabric")!;
+        private const int MaxBodyChars = 4000;
+        private readonly string scope = configuration.GetValue<string>("Scopes:api.fabric")!;
 
         public async Task<TResponse?> GetAsync<TResponse>(string endpoint, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection, scope, cancellationToken);
-
-            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-            using var response = await httpClient.GetAsync(endpoint, cancellationToken);
-
-            try
-            {
-                response.EnsureSuccessStatusCode();
-            }
-            catch (HttpRequestException)
-            {
-                //var body = await response.Content.ReadFromJsonAsync<FabricErrorResponse>();
-                //throw JsonSerializer.Deserialize<FabricErrorResponse>(body!)!;
-                throw await response.Content.ReadFromJsonAsync<ExternalServiceException>();
-            }
-
-            return await response.Content
-                .ReadFromJsonAsync<TResponse>(cancellationToken);
+            using var response = await SendAsync(HttpMethod.Get, endpoint, null, cancellationToken);
+            return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
         }
 
         public async Task<TResponse?> PostAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection, scope, cancellationToken);
-
-            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-            using var response = await httpClient.PostAsJsonAsync(endpoint, request, cancellationToken);
-
-            response.EnsureSuccessStatusCode();
-
-            return await response.Content
-                .ReadFromJsonAsync<TResponse>(cancellationToken);
+            using var response = await SendAsync(HttpMethod.Post, endpoint, null, cancellationToken);
+            return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
         }
 
         public async Task<TResponse?> PatchAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection, scope, cancellationToken);
-
-            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-            using var response = await httpClient.PatchAsJsonAsync(endpoint, request, cancellationToken);
-
-            response.EnsureSuccessStatusCode();
-
-            return await response.Content
-                .ReadFromJsonAsync<TResponse>(cancellationToken);
+            using var response = await SendAsync(HttpMethod.Patch, endpoint, null, cancellationToken);
+            return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
         }
 
         public async Task DeleteAsync(string endpoint, CancellationToken cancellationToken = default)
         {
-            var token = await tokenService.GetOrCreateTokenAsync(connection, scope, cancellationToken);
+            using var response = await SendAsync(HttpMethod.Delete, endpoint, null, cancellationToken);
+            //return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
+        }
 
-            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-            using var response = await httpClient.DeleteAsync(endpoint, cancellationToken);
+        private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string endpoint, object? body, CancellationToken ct)
+        {
+            var operation = $"{method} {endpoint}";
+            var token = await tokenService.GetOrCreateTokenAsync(connection, scope, ct);
 
-            response.EnsureSuccessStatusCode();
+            using var request = new HttpRequestMessage(method, endpoint)
+            {
+                Headers = { Authorization = new("Bearer", token) },
+                Content = body is null ? null : JsonContent.Create(body)
+            };
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await httpClient.SendAsync(request, ct);
+            }
+            catch (HttpRequestException ex)   // DNS, TLS, mất kết nối: chưa có response
+            {
+                throw new ExternalServiceException("FabricApi", operation, null, null, null, ex.Message, null, ex);
+            }
+            catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)   // timeout của HttpClient, không phải client huỷ
+            {
+                throw new ExternalServiceException("FabricApi", operation, 504, "Timeout", null, "Request timed out", null, ex);
+            }
+
+            if (response.IsSuccessStatusCode) return response;
+
+            var error = await ToExceptionAsync(operation, response, ct);
+            response.Dispose();
+            throw error;
+        }
+
+        private static async Task<ExternalServiceException> ToExceptionAsync(string operation, HttpResponseMessage response, CancellationToken ct)
+        {
+            var raw = await response.Content.ReadAsStringAsync(ct);
+            string? code = null, message = null, requestId = null;
+            try
+            {
+                using var doc = JsonDocument.Parse(raw);
+                if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                {
+                    var root = doc.RootElement;
+                    code = root.TryGetProperty("errorCode", out var c) ? c.GetString() : null;
+                    message = root.TryGetProperty("message", out var m) ? m.GetString() : null;
+                    requestId = root.TryGetProperty("requestId", out var r) ? r.GetString() : null;
+                }
+            }
+            catch (JsonException) { /* body không phải JSON: vẫn giữ raw bên dưới */ }
+
+            requestId ??= response.Headers.TryGetValues("RequestId", out var v) ? v.FirstOrDefault() : null;
+            var body = raw.Length > MaxBodyChars ? raw[..MaxBodyChars] + "...(truncated)" : raw;
+            return new ExternalServiceException("FabricApi", operation, (int)response.StatusCode, code, requestId, message, body);
         }
     }
 }

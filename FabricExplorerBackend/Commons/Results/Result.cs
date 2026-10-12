@@ -1,34 +1,16 @@
 ﻿namespace FabricExplorerBackend.Commons.Results
 {
-    public class Result<T>
+    public sealed class Result<T>
     {
-        public bool IsSuccess => ResultStatus == ErrorKind.Success;
-        public ErrorKind ResultStatus { get; set; }
+        public bool IsSuccess => !Errors.Any();
         public T? Data { get; set; }
-        public IList<string> Errors { get; set; } = null!;
+        public IReadOnlyList<Error> Errors { get; private set; } = [];
 
-        public Result() { }
-        public Result(T? data = default)
-        {
-            ResultStatus = ErrorKind.Success;
-            Data = data;
-            Errors = null!;
-        }
-        public Result(ErrorKind resultStatus, IList<string> errors)
-        {
-            ResultStatus = resultStatus;
-            Data = default;
-            Errors = errors;
-        }
-        public Result(ErrorKind resultStatus, string error)
-        {
-            ResultStatus = resultStatus;
-            Data = default;
-            Errors = new List<string> { error };
-        }
+        //[Obsolete]
+        //public static Result<T> Failure(ErrorKind status, string error) => new Result<T>(status, errors: [error]);
 
-        public static Result<T> Success(T? data = default) => new Result<T>(data);
-        public static Result<T> Failure(ErrorKind status, string error) => new Result<T>(status, errors: [error]);
-        public static Result<T> Failure(ErrorKind status, IList<string> errors) => new Result<T>(status, errors: errors);
+        public static Result<T> Success(T? data = default) => new() { Data = data };
+        public static Result<T> Failure(params Error[] errors) => new() { Errors = errors };
+        public static implicit operator Result<T>(Error error) => Failure(error);
     }
 }

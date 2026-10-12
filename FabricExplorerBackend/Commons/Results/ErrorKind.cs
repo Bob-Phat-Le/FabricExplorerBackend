@@ -2,13 +2,16 @@
 {
     public enum ErrorKind
     {
-        Success,
-        NotFound,
+        Validation,
         BadRequest,
-        ValidationError,
-        Conflict,
         Unauthorized,
         Forbidden,
-        InternalError
+        NotFound,
+        Conflict,
+        TooManyRequests,
+        Internal,
+        Upstream,
+        Unavailable,
+        Timeout
     }
 }

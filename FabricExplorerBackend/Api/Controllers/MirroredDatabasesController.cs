@@ -17,10 +17,7 @@ namespace FabricExplorerBackend.Api.Controllers
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
             Guid workspaceId,
             CancellationToken cancellationToken)
-        {
-            var response = await mirroredDatabaseService.ListMirroredDatabasesAsync(connectionId, workspaceId, Request.ShouldBypassCache(), cancellationToken);
-            return ToActionResult(response);
-        }
+            => (await mirroredDatabaseService.ListMirroredDatabasesAsync(connectionId, workspaceId, Request.ShouldBypassCache(), cancellationToken)).ToActionResult(this);
 
         // Tên, workspace, nguồn, ngày tạo, Active/Offline
         [HttpGet("{mirroredDatabaseId:guid}")]
@@ -29,10 +26,7 @@ namespace FabricExplorerBackend.Api.Controllers
             Guid workspaceId,
             Guid mirroredDatabaseId,
             CancellationToken cancellationToken)
-        {
-            var response = await mirroredDatabaseService.GetMirroredDatabaseByIdAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken);
-            return ToActionResult(response);
-        }
+            => (await mirroredDatabaseService.GetMirroredDatabaseByIdAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken)).ToActionResult(this);
 
         // Last synchronization, records synchronized, current latency, status
         [HttpGet("{mirroredDatabaseId:guid}/status")]
@@ -41,10 +35,7 @@ namespace FabricExplorerBackend.Api.Controllers
             Guid workspaceId,
             Guid mirroredDatabaseId,
             CancellationToken cancellationToken)
-        {
-            var response = await mirroredDatabaseService.GetMirroringStatusAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken);
-            return ToActionResult(response);
-        }
+            => (await mirroredDatabaseService.GetMirroringStatusAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken)).ToActionResult(this);
 
         // Table, source, target, status, last sync, lag
         [HttpGet("{mirroredDatabaseId:guid}/tables/status")]
@@ -53,10 +44,7 @@ namespace FabricExplorerBackend.Api.Controllers
             Guid workspaceId,
             Guid mirroredDatabaseId,
             CancellationToken cancellationToken)
-        {
-            var response = await mirroredDatabaseService.ListTablesMirroringStatusAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken);
-            return ToActionResult(response);
-        }
+            => (await mirroredDatabaseService.ListTablesMirroringStatusAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken)).ToActionResult(this);
 
         [HttpPost("{mirroredDatabaseId:guid}/start")]
         public async Task<ActionResult<ApiResponse<MirroringActionResponse>>> StartMirroring(
@@ -64,10 +52,7 @@ namespace FabricExplorerBackend.Api.Controllers
             Guid workspaceId,
             Guid mirroredDatabaseId,
             CancellationToken cancellationToken)
-        {
-            var response = await mirroredDatabaseService.StartMirroringAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken);
-            return ToActionResult(response);
-        }
+            => (await mirroredDatabaseService.StartMirroringAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken)).ToActionResult(this);
 
         [HttpPost("{mirroredDatabaseId:guid}/stop")]
         public async Task<ActionResult<ApiResponse<MirroringActionResponse>>> StopMirroring(
@@ -75,17 +60,6 @@ namespace FabricExplorerBackend.Api.Controllers
             Guid workspaceId,
             Guid mirroredDatabaseId,
             CancellationToken cancellationToken)
-        {
-            var response = await mirroredDatabaseService.StopMirroringAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken);
-            return ToActionResult(response);
-        }
-
-        private ActionResult<ApiResponse<T>> ToActionResult<T>(Result<T> result)
-        {
-            var statusCode = ResultExtensions.ToHttpStatusCode(result.ResultStatus);
-            if (result.IsSuccess)
-                return Ok(new ApiResponse<T>(statusCode, result.Data));
-            return StatusCode(statusCode, new ApiResponse<T>(statusCode, result.Errors));
-        }
+            => (await mirroredDatabaseService.StopMirroringAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken)).ToActionResult(this);
     }
 }

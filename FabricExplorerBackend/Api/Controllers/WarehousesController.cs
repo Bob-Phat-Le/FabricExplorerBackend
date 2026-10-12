@@ -16,13 +16,7 @@ namespace FabricExplorerBackend.Api.Controllers
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
             Guid workspaceId,
             CancellationToken cancellationToken = default)
-        {
-            var response = await warehouseService.GetAllWarehousesAsync(connectionId, workspaceId, Request.ShouldBypassCache(), cancellationToken);
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<IEnumerable<WarehouseListItemResponse>>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<IEnumerable<WarehouseListItemResponse>>(statusCode, response.Errors));
-        }
+            => (await warehouseService.GetAllWarehousesAsync(connectionId, workspaceId, Request.ShouldBypassCache(), cancellationToken)).ToActionResult(this);
 
         // X-Connection-Id nên là connectionId của dòng được chọn trong dropdown
         [HttpGet("{warehouseId:guid}")]
@@ -31,13 +25,7 @@ namespace FabricExplorerBackend.Api.Controllers
             Guid workspaceId,
             Guid warehouseId,
             CancellationToken cancellationToken = default)
-        {
-            var response = await warehouseService.GetWarehouseByIdAsync(connectionId, workspaceId, warehouseId, cancellationToken);
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<WarehouseDetailResponse>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<WarehouseDetailResponse>(statusCode, response.Errors));
-        }
+            => (await warehouseService.GetWarehouseByIdAsync(connectionId, workspaceId, warehouseId, cancellationToken)).ToActionResult(this);
 
         [HttpGet("{warehouseId:guid}/connection-string")]
         public async Task<ActionResult<ApiResponse<WarehouseConnectionStringResponse>>> GetConnectionString(
@@ -45,12 +33,6 @@ namespace FabricExplorerBackend.Api.Controllers
             Guid workspaceId,
             Guid warehouseId,
             CancellationToken cancellationToken = default)
-        {
-            var response = await warehouseService.GetConnectionStringAsync(connectionId, workspaceId, warehouseId, cancellationToken);
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<WarehouseConnectionStringResponse>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<WarehouseConnectionStringResponse>(statusCode, response.Errors));
-        }
+            => (await warehouseService.GetConnectionStringAsync(connectionId, workspaceId, warehouseId, cancellationToken)).ToActionResult(this);
     }
 }

@@ -1,12 +1,14 @@
 ﻿using Azure;
 using Azure.Identity;
 using FabricExplorerBackend.Application.Warhouse.Contracts;
+using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Sql;
 using Microsoft.Data.SqlClient;
+using Microsoft.Fabric.Api.Warehouse.Models;
 
 namespace FabricExplorerBackend.Application.Warhouse
 {
@@ -20,166 +22,103 @@ namespace FabricExplorerBackend.Application.Warhouse
     {
         public async Task<Result<WarehouseDetailResponse>> GetWarehouseByIdAsync(Guid connectionId, Guid workspaceId, Guid warehouseId, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
-                if (connection == null)
-                    return Result<WarehouseDetailResponse>.Failure(ErrorKind.NotFound, "connection not found");
+            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
+            if (connection is null)
+                return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found.");
 
-                var context = await fabricContextFactory.CreateFabricContextWithoutTokenAsync(connection, cancellationToken);
-                if (context == null)
-                    return Result<WarehouseDetailResponse>.Failure(ErrorKind.BadRequest, "can not create context");
+            var context = await fabricContextFactory.CreateFabricContextWithoutTokenAsync(connection, cancellationToken);
 
-                var fabricWarehouseTask = context.Client.Warehouse.Items.GetWarehouseAsync(workspaceId, warehouseId, cancellationToken: cancellationToken);
-                var fabricWorkspaceTask = context.Client.Core.Workspaces.GetWorkspaceAsync(workspaceId, cancellationToken: cancellationToken);
+            var warehouseTask = context.Client.Warehouse.Items.GetWarehouseAsync(workspaceId, warehouseId, cancellationToken: cancellationToken);
+            var workspaceTask = context.Client.Core.Workspaces.GetWorkspaceAsync(workspaceId, cancellationToken: cancellationToken);
+            
+            await Task.WhenAll(warehouseTask, workspaceTask);
 
-                await Task.WhenAll(fabricWarehouseTask, fabricWorkspaceTask);
+            var warehouse = (await warehouseTask).Value;
+            var workspace = (await workspaceTask).Value;
 
-                var warehouse = (await fabricWarehouseTask).Value;
-                var workspace = (await fabricWorkspaceTask).Value;
-
-                var (onlineStatus, onlineStatusMessage) = await CheckOnlineStatusAsync(
+            var (onlineStatus, onlineStatusMessage) = await CheckOnlineStatusAsync(
                     connection, warehouse.Properties?.ConnectionString, warehouse.DisplayName, cancellationToken);
 
-                return Result<WarehouseDetailResponse>.Success(new WarehouseDetailResponse
+            var response = new WarehouseDetailResponse
+            {
+                Id = warehouseId,
+                Name = warehouse.DisplayName,
+                Description = warehouse.Description,
+                OnlineStatus = onlineStatus.ToString(),
+                OnlineStatusMessage = onlineStatusMessage,
+                CreatedDate = warehouse?.Properties?.CreatedDate,
+                LastUpdatedTime = warehouse?.Properties?.LastUpdatedTime,
+                Workspace = new WarehouseWorkspaceContextResponse
                 {
-                    Id = warehouseId,
-                    Name = warehouse.DisplayName,
-                    Description = warehouse.Description,
-                    OnlineStatus = onlineStatus.ToString(),
-                    OnlineStatusMessage = onlineStatusMessage,
-                    CreatedDate = warehouse?.Properties?.CreatedDate,
-                    LastUpdatedTime = warehouse?.Properties?.LastUpdatedTime,
-                    Workspace = new WarehouseWorkspaceContextResponse
-                    {
-                        Id = workspaceId,
-                        Name = workspace.DisplayName,
-                        CapacityId = Guid.TryParse(workspace.CapacityId?.ToString(), out var capacityId)
+                    Id = workspaceId,
+                    Name = workspace.DisplayName,
+                    CapacityId = Guid.TryParse(workspace.CapacityId?.ToString(), out var capacityId)
                             ? capacityId
                             : null
-                    }
-                });
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (AuthenticationFailedException ex)
-            {
-                return Result<WarehouseDetailResponse>.Failure(ErrorKind.BadRequest, ex.Message);
-            }
-            catch (RequestFailedException ex) when (ex.Status == 404)
-            {
-                return Result<WarehouseDetailResponse>.Failure(
-                    ErrorKind.NotFound, "Warehouse or workspace not found, or the connection can not access it.");
-            }
-            catch (RequestFailedException ex) when (ex.Status is 401 or 403)
-            {
-                return Result<WarehouseDetailResponse>.Failure(
-                    ErrorKind.Forbidden, "The connection does not have access to this workspace.");
-            }
-            catch (Exception ex)
-            {
-                return Result<WarehouseDetailResponse>.Failure(ErrorKind.InternalError, ex.Message);
-            }
+                }
+            };
+
+            return Result<WarehouseDetailResponse>.Success(response);
         }
 
         public async Task<Result<IEnumerable<WarehouseListItemResponse>>> GetAllWarehousesAsync(
             Guid connectionId, Guid workspaceId, bool bypassCache = false, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
-                if (connection == null)
-                    return Result<IEnumerable<WarehouseListItemResponse>>.Failure(ErrorKind.NotFound, "connection not found");
+            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
+            if (connection == null)
+                return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
 
-                var ttl = TimeSpan.FromSeconds(configuration.GetValue("Fabric:ItemListCacheSeconds", 60));
-                var key = cachedFetcher.CreateKey("warehouses", connectionId.ToString(), workspaceId.ToString());
+            var ttl = TimeSpan.FromSeconds(configuration.GetValue("Fabric:ItemListCacheSeconds", 60));
+            var key = cachedFetcher.CreateKey("warehouses", connectionId.ToString(), workspaceId.ToString());
 
-                var items = await cachedFetcher.GetOrFetchAsync<IReadOnlyList<WarehouseListItemResponse>>(
-                    key, ttl,
-                    async ct =>
-                    {
-                        // Quy tắc của fetch dùng chung: chỉ dùng dữ liệu thuần + context, không dùng UnitOfWork
-                        var context = await fabricContextFactory.CreateFabricContextWithoutTokenAsync(connection, ct)
-                            ?? throw new InvalidOperationException("can not create context");
+            var items = await cachedFetcher.GetOrFetchAsync<IReadOnlyList<WarehouseListItemResponse>>(
+                key, ttl,
+                async ct =>
+                {
+                    // Quy tắc của fetch dùng chung: chỉ dùng dữ liệu thuần + context, không dùng UnitOfWork
+                    var context = await fabricContextFactory.CreateFabricContextWithoutTokenAsync(connection, ct)
+                        ?? throw new InvalidOperationException("can not create context");
 
-                        var workspaceTask = context.Client.Core.Workspaces.GetWorkspaceAsync(workspaceId, cancellationToken: ct);
-                        var warehousesTask = context.Client.Warehouse.Items
-                            .ListWarehousesAsync(workspaceId)
-                            .ToListAsync(ct)
-                            .AsTask();
+                    var workspaceTask = context.Client.Core.Workspaces.GetWorkspaceAsync(workspaceId, cancellationToken: ct);
+                    var warehousesTask = context.Client.Warehouse.Items
+                        .ListWarehousesAsync(workspaceId)
+                        .ToListAsync(ct)
+                        .AsTask();
 
-                        await Task.WhenAll(workspaceTask, warehousesTask);
+                    await Task.WhenAll(workspaceTask, warehousesTask);
 
-                        var workspaceName = (await workspaceTask).Value.DisplayName;
-                        return (await warehousesTask)
-                            .Select(wh => new WarehouseListItemResponse
-                            {
-                                WarehouseName = wh.DisplayName,
-                                WorkspaceName = workspaceName,
-                                WarehouseId = (Guid)wh.Id!,
-                                WorkspaceId = workspaceId,
-                                ConnectionId = connectionId
-                            })
-                            .ToList();
-                    },
-                    bypassCache,
-                    cancellationToken: cancellationToken);
+                    var workspaceName = (await workspaceTask).Value.DisplayName;
+                    return (await warehousesTask)
+                        .Select(wh => new WarehouseListItemResponse
+                        {
+                            WarehouseName = wh.DisplayName,
+                            WorkspaceName = workspaceName,
+                            WarehouseId = (Guid)wh.Id!,
+                            WorkspaceId = workspaceId,
+                            ConnectionId = connectionId
+                        })
+                        .ToList();
+                },
+                bypassCache,
+                cancellationToken: cancellationToken);
 
-                return Result<IEnumerable<WarehouseListItemResponse>>.Success(items);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (AuthenticationFailedException ex)
-            {
-                return Result<IEnumerable<WarehouseListItemResponse>>.Failure(ErrorKind.BadRequest, ex.Message);
-            }
-            catch (RequestFailedException ex) when (ex.Status == 404)
-            {
-                return Result<IEnumerable<WarehouseListItemResponse>>.Failure(
-                    ErrorKind.NotFound, "Workspace not found, or the connection can not access it.");
-            }
-            catch (RequestFailedException ex) when (ex.Status is 401 or 403)
-            {
-                return Result<IEnumerable<WarehouseListItemResponse>>.Failure(
-                    ErrorKind.Forbidden, "The connection does not have access to this workspace.");
-            }
-            catch (Exception ex)
-            {
-                return Result<IEnumerable<WarehouseListItemResponse>>.Failure(ErrorKind.InternalError, ex.Message);
-            }
+            return Result<IEnumerable<WarehouseListItemResponse>>.Success(items);
         }
 
         public async Task<Result<WarehouseConnectionStringResponse>> GetConnectionStringAsync(Guid connectionId, Guid workspaceId, Guid warehouseId, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
-                if (connection == null)
-                    return Result<WarehouseConnectionStringResponse>.Failure(ErrorKind.NotFound, "connection not found");
+            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
+            if (connection == null)
+                return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
 
-                var context = await fabricContextFactory.CreateFabricContextWithoutTokenAsync(connection, cancellationToken);
-                if (context == null)
-                    return Result<WarehouseConnectionStringResponse>.Failure(ErrorKind.BadRequest, "can not create context");
+            var context = await fabricContextFactory.CreateFabricContextWithoutTokenAsync(connection, cancellationToken);
 
-                var response = await context.Client.Warehouse.Items.GetConnectionStringAsync(workspaceId, warehouseId, cancellationToken: cancellationToken);
-                return Result<WarehouseConnectionStringResponse>.Success(new WarehouseConnectionStringResponse
-                {
-                    WarehouseId = warehouseId,
-                    ConnectionString = response.Value.ConnectionString
-                });
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            var response = await context.Client.Warehouse.Items.GetConnectionStringAsync(workspaceId, warehouseId, cancellationToken: cancellationToken);
+            return Result<WarehouseConnectionStringResponse>.Success(new WarehouseConnectionStringResponse
             {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                return Result<WarehouseConnectionStringResponse>.Failure(ErrorKind.InternalError, ex.Message);
-            }
+                WarehouseId = warehouseId,
+                ConnectionString = response.Value.ConnectionString
+            });
         }
 
         private async Task<(WarehouseOnlineStatus Status, string? Message)> CheckOnlineStatusAsync(
@@ -193,35 +132,35 @@ namespace FabricExplorerBackend.Application.Warhouse
             using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutSource.CancelAfter(timeout);
 
-            try
-            {
-                await sqlQueryService.ExecuteScalarAsync<int?>(
-                    connection,
-                    new SqlEndpoint(sqlHost, warehouseName),
-                    "SELECT 1",
-                    cancellationToken: timeoutSource.Token);
+            //try
+            //{
+            await sqlQueryService.ExecuteScalarAsync<int?>(
+                connection,
+                new SqlEndpoint(sqlHost, warehouseName),
+                "SELECT 1",
+                cancellationToken: timeoutSource.Token);
 
-                return (WarehouseOnlineStatus.Online, null);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (OperationCanceledException)
-            {
-                return (WarehouseOnlineStatus.Offline, $"Không kết nối được trong {timeout.TotalSeconds:0} giây.");
-            }
-            catch (SqlException ex)
-            {
-                logger.LogWarning(ex, "SQL probe failed for warehouse {WarehouseName}.", warehouseName);
-                return (WarehouseOnlineStatus.Offline, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                // Ví dụ không lấy được token SQL: chưa đủ cơ sở để kết luận warehouse offline
-                logger.LogWarning(ex, "Cannot check online status of warehouse {WarehouseName}.", warehouseName);
-                return (WarehouseOnlineStatus.Unknown, ex.Message);
-            }
+            return (WarehouseOnlineStatus.Online, null);
+            //}
+            //catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            //{
+            //    throw;
+            //}
+            //catch (OperationCanceledException)
+            //{
+            //    return (WarehouseOnlineStatus.Offline, $"Không kết nối được trong {timeout.TotalSeconds:0} giây.");
+            //}
+            //catch (SqlException ex)
+            //{
+            //    logger.LogWarning(ex, "SQL probe failed for warehouse {WarehouseName}.", warehouseName);
+            //    return (WarehouseOnlineStatus.Offline, ex.Message);
+            //}
+            //catch (Exception ex)
+            //{
+            //    // Ví dụ không lấy được token SQL: chưa đủ cơ sở để kết luận warehouse offline
+            //    logger.LogWarning(ex, "Cannot check online status of warehouse {WarehouseName}.", warehouseName);
+            //    return (WarehouseOnlineStatus.Unknown, ex.Message);
+            //}
         }
     }
 }
