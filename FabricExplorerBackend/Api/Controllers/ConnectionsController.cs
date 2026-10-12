@@ -18,82 +18,34 @@ namespace FabricExplorerBackend.Api.Controllers
     {
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>>> GetAllConnections([FromQuery] PaginationRequest? paginationRequest, CancellationToken cancellationToken = default)
-        {
-            var response = await connectionService.GetAllConnectionsAsync(paginationRequest);
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>(statusCode, response.Errors));
-        }
+            => (await connectionService.GetAllConnectionsAsync(paginationRequest)).ToActionResult(this);
 
         [HttpGet("{connectionId}")]
-        public async Task<ActionResult<ApiResponse<ConnectionResponse>>> GetConnectionById(Guid connectionId, CancellationToken cancellationToken = default)
-        {
-            var response = await connectionService.GetConnectionByIdAsync(connectionId);
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<ConnectionResponse>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<ConnectionResponse>(statusCode, response.Errors));
-        }
+        public async Task<ActionResult<ApiResponse<ConnectionResponse>>> GetConnectionById(Guid connectionId)
+            => (await connectionService.GetConnectionByIdAsync(connectionId)).ToActionResult(this);
 
         [HttpGet("active")]
         public async Task<ActionResult<ApiResponse<ConnectionResponse>>> GetActiveConnection(CancellationToken cancellationToken = default)
-        {
-            var response = await connectionService.GetActiveConnectionAsync();
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<ConnectionResponse>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<ConnectionResponse>(statusCode, response.Errors));
-        }
+            => (await connectionService.GetActiveConnectionAsync()).ToActionResult(this);
 
         [HttpPatch("{connectionId}")]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> UpdateConnection(Guid connectionId, [FromBody] UpdateConnectionRequest request, CancellationToken cancellationToken = default)
-        {
-            var response = await connectionService.UpdateConnection(connectionId, request);
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<ConfirmationResponse>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<ConfirmationResponse>(statusCode, response.Errors));
-        }
+            => (await connectionService.UpdateConnection(connectionId, request)).ToActionResult(this);
 
         [HttpDelete("{connectionId}")]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> DeleteConnection(Guid connectionId, CancellationToken cancellationToken = default)
-        {
-            var response = await connectionService.DeleteConnection(connectionId);
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<ConfirmationResponse>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<ConfirmationResponse>(statusCode, response.Errors));
-        }
+            => (await connectionService.DeleteConnection(connectionId)).ToActionResult(this);
 
         [HttpPost]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> CreateConnection(CreateConnectionRequest request, CancellationToken cancellationToken = default)
-        {
-            var response = await connectionService.CreateConnectionAsync(request);
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<ConfirmationResponse>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<ConfirmationResponse>(statusCode, response.Errors));
-        }
+            => (await connectionService.CreateConnectionAsync(request)).ToActionResult(this);
 
         [HttpPost("{connectionId}/test")]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> TestConnection(Guid connectionId, CancellationToken cancellationToken = default)
-        {
-            var response = await connectionService.TestConnection(connectionId);
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<ConfirmationResponse>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<ConfirmationResponse>(statusCode, response.Errors));
-        }
+            => (await connectionService.TestConnection(connectionId)).ToActionResult(this);
 
         [HttpPost("{connectionId}/active")]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId, CancellationToken cancellationToken = default)
-        {
-            var response = await connectionService.ActiveConnection(connectionId);
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<ConfirmationResponse>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<ConfirmationResponse>(statusCode, response.Errors));
-        }
+            => (await connectionService.ActiveConnection(connectionId)).ToActionResult(this);
     }
 }

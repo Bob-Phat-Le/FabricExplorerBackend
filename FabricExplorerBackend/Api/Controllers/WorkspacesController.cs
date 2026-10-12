@@ -15,12 +15,6 @@ namespace FabricExplorerBackend.Api.Controllers
         public async Task<ActionResult<ApiResponse<IEnumerable<WorkspaceListItemResponse>>>> GetAllWorkspaces(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
             CancellationToken cancellationToken)
-        {
-            var response = await workspaceService.GetAllWorkspacesAsync(connectionId, Request.ShouldBypassCache(), cancellationToken);
-            var statusCode = ResultExtensions.ToHttpStatusCode(response.ResultStatus);
-            if (response.IsSuccess)
-                return Ok(new ApiResponse<IEnumerable<WorkspaceListItemResponse>>(statusCode, response.Data));
-            return StatusCode(statusCode, new ApiResponse<IEnumerable<WorkspaceListItemResponse>>(statusCode, response.Errors));
-        }
+            => (await workspaceService.GetAllWorkspacesAsync(connectionId, Request.ShouldBypassCache(), cancellationToken)).ToActionResult(this);
     }
 }

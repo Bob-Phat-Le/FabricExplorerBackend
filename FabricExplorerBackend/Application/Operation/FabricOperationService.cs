@@ -1,4 +1,5 @@
 ﻿using FabricExplorerBackend.Application.Operation.Contracts;
+using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 
@@ -8,39 +9,25 @@ namespace FabricExplorerBackend.Application.Operation
         IUnitOfWork unitOfWork,
         IFabricOperationMapper mapper) : IFabricOperationService
     {
-        public async Task<Result<FabricOperationResponse>> CreateFabricOperationAsync(CreateFabricOperationRequest request)
+        public async Task<Result<FabricOperationResponse>> CreateFabricOperationAsync(CreateFabricOperationRequest request, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var operation = mapper.Map(request);
-                await unitOfWork.FabricOperationRepository.AddAsync(operation);
-                var lineChanges = await unitOfWork.SaveChangesAsync();
+            var operation = mapper.Map(request);
+            await unitOfWork.FabricOperationRepository.AddAsync(operation);
+            var lineChanges = await unitOfWork.SaveChangesAsync();
 
-                if (lineChanges <= 0)
-                    return Result<FabricOperationResponse>.Failure(ErrorKind.BadRequest, "Failed to create fabric operation.");
+            if (lineChanges <= 0)
+                throw new InvalidOperationException($"Failed create operation");
 
-                return Result<FabricOperationResponse>.Success(mapper.Map(operation));
-            }
-            catch (Exception ex)
-            {
-                return Result<FabricOperationResponse>.Failure(ErrorKind.InternalError, ex.Message);
-            }
+            return Result<FabricOperationResponse>.Success(mapper.Map(operation));
         }
 
-        public async Task<Result<FabricOperationResponse>> GetFabricOperationByIdAsync(Guid id)
+        public async Task<Result<FabricOperationResponse>> GetFabricOperationByIdAsync(Guid id, CancellationToken cancellation = default)
         {
-            try
-            {
-                var operation = await unitOfWork.FabricOperationRepository.GetByIdAsync(id);
-                if (operation == null)
-                    return Result<FabricOperationResponse>.Failure(ErrorKind.NotFound, "operation not found");
+            var operation = await unitOfWork.FabricOperationRepository.GetByIdAsync(id);
+            if (operation == null)
+                return Error.NotFound(ErrorCodes.Operation.NotFound, "Operation not found");
 
-                return Result<FabricOperationResponse>.Success(mapper.Map(operation));
-            }
-            catch (Exception ex)
-            {
-                return Result<FabricOperationResponse>.Failure(ErrorKind.InternalError, ex.Message);
-            }
+            return Result<FabricOperationResponse>.Success(mapper.Map(operation));
         }
     }
 }

@@ -10,6 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Commons\Models\**" />
+    <Content Remove="Commons\Models\**" />
+    <EmbeddedResource Remove="Commons\Models\**" />
+    <None Remove="Commons\Models\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="Azure.Storage.Files.DataLake" Version="12.28.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
@@ -25,17 +32,12 @@
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.2-preview.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Riok.Mapperly" Version="4.3.1" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="StackExchange.Redis" Version="3.3.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Commons\Models\Responses\Fabric\Exceptions\" />
-    <Folder Include="Commons\Models\Responses\Fabric\FabricOperation\" />
-    <Folder Include="Commons\Models\Responses\Fabric\Lakehouse\" />
-    <Folder Include="Commons\Models\Responses\Fabric\MirroredDatabase\" />
-    <Folder Include="Commons\Models\Responses\Fabric\Warehouse\" />
-    <Folder Include="Commons\Models\Responses\Fabric\Workspace\" />
     <Folder Include="Infrastructures\Persistences\Migrations\" />
   </ItemGroup>
 

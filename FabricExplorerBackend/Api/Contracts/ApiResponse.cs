@@ -1,29 +1,16 @@
 ﻿namespace FabricExplorerBackend.Api.Contracts
 {
+    public sealed record ApiError(string Code, string Message, string TraceId, object? Details = null);
+
     public class ApiResponse<T>
     {
         public int StatusCode { get; set; }
         public T? Data { get; set; }
-        public IList<string> Errors { get; set; } = null!;
+        public IList<string>? Errors { get; set; }   // giữ nguyên (null khi thành công) để FE hiện tại không vỡ
+        public ApiError? Error { get; set; }          // mới: FE chuyển dần sang đọc error.code và error.traceId
 
-        public ApiResponse() { }
-        public ApiResponse(int statusCode, T? data = default)
-        {
-            StatusCode = statusCode;
-            Data = data;
-            Errors = null!;
-        }
-        public ApiResponse(int statusCode, IList<string> errors)
-        {
-            StatusCode = statusCode;
-            Data = default;
-            Errors = errors;
-        }
-        public ApiResponse(int statusCode, string error)
-        {
-            StatusCode = statusCode;
-            Data = default;
-            Errors = new List<string> { error };
-        }
+        public static ApiResponse<T> Ok(T? data) => new() { StatusCode = 200, Data = data };
+        public static ApiResponse<T> Fail(int status, ApiError error)
+            => new() { StatusCode = status, Errors = [error.Message], Error = error };
     }
 }

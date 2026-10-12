@@ -1,16 +1,15 @@
 ﻿namespace FabricExplorerBackend.Commons.Errors
 {
-    public sealed class ExternalServiceException : Exception
+    public sealed class ExternalServiceException(
+        string service, string operation, int? upstreamStatus, string? upstreamCode,
+        string? upstreamRequestId, string? upstreamMessage, string? responseBody, Exception? inner = null)
+        : Exception($"{service} '{operation}' failed: HTTP {upstreamStatus?.ToString() ?? "n/a"} {upstreamCode} {upstreamMessage}".Trim(), inner)
     {
-        public string? RequestId { get; set; }
-        public string? ErrorCode { get; set; }
-        public bool IsRetriable { get; set; }
-
-        public ExternalServiceException(string? requestId, string? errorCode, string? message, bool isRetriable) : base(message)
-        {
-            RequestId = requestId;
-            ErrorCode = errorCode;
-            IsRetriable = isRetriable;
-        }
+        public string Service { get; } = service;
+        public string Operation { get; } = operation;
+        public int? UpstreamStatus { get; } = upstreamStatus;
+        public string? UpstreamCode { get; } = upstreamCode;
+        public string? UpstreamRequestId { get; } = upstreamRequestId;
+        public string? ResponseBody { get; } = responseBody;
     }
 }

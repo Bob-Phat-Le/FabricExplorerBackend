@@ -1,6 +1,7 @@
 ﻿using Azure;
 using FabricExplorerBackend.Application.Connection.Contracts;
 using FabricExplorerBackend.Commons.Contracts;
+using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Paginations;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Cache;
@@ -22,7 +23,7 @@ namespace FabricExplorerBackend.Application.Connection
         IUnitOfWork unitOfWork,
         IConnectionMapper connectionMapper) : IConnectionService
     {
-        public async Task<Result<PagedResponse<IEnumerable<ConnectionResponse>>>> GetAllConnectionsAsync(PaginationRequest? paginationRequest)
+        public async Task<Result<PagedResponse<IEnumerable<ConnectionResponse>>>> GetAllConnectionsAsync(PaginationRequest? paginationRequest, CancellationToken cancellationToken = default)
         {
             if (paginationRequest != null)
                 paginationRequest.Validate();
@@ -30,7 +31,7 @@ namespace FabricExplorerBackend.Application.Connection
             var page = paginationRequest?.Page ?? 1;
             var pageSize = paginationRequest!.PageSize;
 
-            var (connectionList, count) = await unitOfWork.ConnectionRepository.GetAllAsync((page - 1) * pageSize, pageSize);
+            var (connectionList, count) = await unitOfWork.ConnectionRepository.GetAllAsync((page - 1) * pageSize, pageSize, cancellationToken: cancellationToken);
 
             var pageInformation = new PageInformation
             {
@@ -47,26 +48,26 @@ namespace FabricExplorerBackend.Application.Connection
                 .Success(new PagedResponse<IEnumerable<ConnectionResponse>>(connectionResponseList, pageInformation));
         }
 
-        public async Task<Result<ConnectionResponse>> GetConnectionByIdAsync(Guid connectionId)
+        public async Task<Result<ConnectionResponse>> GetConnectionByIdAsync(Guid connectionId, CancellationToken cancellationToken = default)
         {
-            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
+            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
             if (connection == null)
-                return Result<ConnectionResponse>.Failure(ErrorKind.NotFound, "Connection not found");
+                return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
             var connectionResponse = connectionMapper.Map(connection);
             return Result<ConnectionResponse>.Success(connectionResponse);
         }
 
-        public async Task<Result<ConfirmationResponse>> UpdateConnection(Guid connectionId, UpdateConnectionRequest request)
+        public async Task<Result<ConfirmationResponse>> UpdateConnection(Guid connectionId, UpdateConnectionRequest request, CancellationToken cancellationToken = default)
         {
-            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, true);
+            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, true, cancellationToken);
             if (connection == null)
-                return Result<ConfirmationResponse>.Failure(ErrorKind.NotFound, "Connection not found");
+                return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
 
             if (request.WorkspaceId.HasValue && request.WorkspaceId != connection.WorkspaceId)
             {
-                var conn = await unitOfWork.ConnectionRepository.CheckDuplicateWorkspaceIdAsync((Guid)request.WorkspaceId!);
+                var conn = await unitOfWork.ConnectionRepository.CheckDuplicateWorkspaceIdAsync((Guid)request.WorkspaceId!, cancellationToken: cancellationToken);
                 if (conn != null && conn.Id != connection.Id)
-                    return Result<ConfirmationResponse>.Failure(ErrorKind.Conflict, "Workspace id is duplicated");
+                    return Error.Conflict(ErrorCodes.Connection.Duplicated, "Workspace id is duplicated");
             }
 
             if (!string.IsNullOrEmpty(request.ClientSecret))
@@ -75,8 +76,8 @@ namespace FabricExplorerBackend.Application.Connection
             connection.UpdatedAt = DateTimeOffset.UtcNow;
             connection.UpdatedBy = null; // You can set this to the current user if you have authentication implemented
 
-            await unitOfWork.ConnectionRepository.Update(connection);
-            var lineChanges = await unitOfWork.SaveChangesAsync();
+            unitOfWork.ConnectionRepository.Update(connection);
+            var lineChanges = await unitOfWork.SaveChangesAsync(cancellationToken);
 
             if (lineChanges > 0)
             {
@@ -84,97 +85,47 @@ namespace FabricExplorerBackend.Application.Connection
                 await cacheService.SetValueAsync(cacheKey, System.Text.Json.JsonSerializer.Serialize(connection));
                 return Result<ConfirmationResponse>.Success(new ConfirmationResponse { Message = "Connection updated successfully" });
             }
-            return Result<ConfirmationResponse>.Failure(ErrorKind.BadRequest, "Failed to update connection");
+            throw new InvalidOperationException($"Failed to update connection-{connectionId}");
         }
 
-        public async Task<Result<ConfirmationResponse>> TestConnection(Guid connectionId)
+        public async Task<Result<ConfirmationResponse>> TestConnection(Guid connectionId, CancellationToken cancellationToken = default)
         {
-            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
+            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
             if (connection == null)
-                return Result<ConfirmationResponse>.Failure(ErrorKind.NotFound, "Connection not found");
+                return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
 
             string accessToken;
-            try
+            accessToken = await tokenService.CreateTokenAsync(
+                connection,
+                configuration.GetValue<string>("Scopes:api.fabric", "https://api.fabric.microsoft.com/.default")!,
+                cancellationToken);
+
+            var context = await contextFactory.CreateFabricContextWithTokenAsync(connection, accessToken);
+
+            var workspace = (await context.Client.Core.Workspaces.GetWorkspaceAsync(context.WorkspaceId, cancellationToken: cancellationToken)).Value;
+
+            if (workspace == null || workspace.Id != connection.WorkspaceId)
+                return Error.NotFound(ErrorCodes.Fabric.NotFound, "Workspace not found");
+
+            return Result<ConfirmationResponse>.Success(new ConfirmationResponse
             {
-                accessToken = await tokenService.CreateTokenAsync(
-                    connection,
-                    configuration.GetValue<string>("Scopes:api.fabric", "https://api.fabric.microsoft.com/.default")!);
-            }
-            catch (Exception ex)
-            {
-                return Result<ConfirmationResponse>.Failure(ErrorKind.BadRequest,
-                [
-                    "Failed to get an access token (check tenant id, client id, client secret).",
-                    $"{ex.GetType().Name}: {ex.Message}"
-                ]);
-            }
-
-            try
-            {
-                var context = await contextFactory.CreateFabricContextWithTokenAsync(connection, accessToken);
-                if (context == null)
-                    return Result<ConfirmationResponse>.Failure(ErrorKind.BadRequest, "Can not create context with this connection id");
-
-                var workspace = (await context.Client.Core.Workspaces.GetWorkspaceAsync(context.WorkspaceId)).Value;
-
-                if (workspace.Id != connection.WorkspaceId)
-                    return Result<ConfirmationResponse>.Failure(ErrorKind.BadRequest,
-                        $"Fabric returned workspace {workspace.Id} but {connection.WorkspaceId} is configured");
-
-                return Result<ConfirmationResponse>.Success(new ConfirmationResponse
-                {
-                    Message = $"Connection check succeeded. Workspace: {workspace.DisplayName} ({workspace.Id})"
-                });
-            }
-            catch (RequestFailedException ex)
-            {
-                var status = ex.Status switch
-                {
-                    401 or 403 => ErrorKind.Forbidden,
-                    404 => ErrorKind.NotFound,
-                    _ => ErrorKind.BadRequest
-                };
-
-                var hint = ex.Status switch
-                {
-                    403 => "The service principal is not allowed. Add it to the workspace and enable \"Service principals can use Fabric APIs\".",
-                    404 => "Workspace does not exist, or the service principal is not a member of it.",
-                    _ => null
-                };
-
-                var errors = new List<string>
-                {
-                    "Calling Fabric failed.",
-                    $"HTTP {ex.Status}, error code: {ex.ErrorCode ?? "n/a"}",
-                    ex.Message
-                };
-                if (hint != null) errors.Add($"Hint: {hint}");
-
-                return Result<ConfirmationResponse>.Failure(status, errors);
-            }
-            catch (Exception ex)
-            {
-                return Result<ConfirmationResponse>.Failure(ErrorKind.InternalError,
-                [
-                    "Calling Fabric failed.",
-                    $"{ex.GetType().Name}: {ex.Message}"
-                ]);
-            }
+                Message = $"Connection check succeeded. Workspace: {workspace.DisplayName} ({workspace.Id})"
+            });
         }
 
-        public async Task<Result<ConfirmationResponse>> CreateConnectionAsync(CreateConnectionRequest request)
+        public async Task<Result<ConfirmationResponse>> CreateConnectionAsync(CreateConnectionRequest request, CancellationToken cancellationToken = default)
         {
             var connection = connectionMapper.Map(request);
             connection.CreatedAt = DateTimeOffset.UtcNow;
             connection.CreatedBy = Guid.Empty;
             connection.ClientSecret = secretProtector.Protect(connection.ClientSecret);
 
-            var conn = await unitOfWork.ConnectionRepository.CheckDuplicateWorkspaceIdAsync(request.WorkspaceId);
+            var conn = await unitOfWork.ConnectionRepository.CheckDuplicateWorkspaceIdAsync(request.WorkspaceId, cancellationToken);
             if (conn != null)
-                return Result<ConfirmationResponse>.Failure(ErrorKind.Conflict, "Workspace id is duplicated");
+                return Error.Conflict(ErrorCodes.Connection.Duplicated, "Workspace id is duplicated");
 
-            await unitOfWork.ConnectionRepository.AddAsync(connection);
-            var lineChanges = await unitOfWork.SaveChangesAsync();
+            await unitOfWork.ConnectionRepository.AddAsync(connection, cancellationToken);
+            var lineChanges = await unitOfWork.SaveChangesAsync(cancellationToken);
 
             if (lineChanges > 0)
             {
@@ -182,38 +133,36 @@ namespace FabricExplorerBackend.Application.Connection
                 return Result<ConfirmationResponse>.Success(new ConfirmationResponse { Message = "Connection created successfully" });
             }
 
-            return Result<ConfirmationResponse>.Failure(ErrorKind.BadRequest, "Failed to create connection");
+            throw new InvalidOperationException($"Failed to create connection");
         }
 
-        public async Task<Result<ConfirmationResponse>> DeleteConnection(Guid connectionId)
+        public async Task<Result<ConfirmationResponse>> DeleteConnection(Guid connectionId, CancellationToken cancellationToken = default)
         {
-            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId);
+            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
             if (connection == null)
-                return Result<ConfirmationResponse>.Failure(ErrorKind.NotFound, "Connection not found");
+                return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
 
-            await unitOfWork.ConnectionRepository.Delete(connection);
-            var lineChanges = await unitOfWork.SaveChangesAsync();
+            unitOfWork.ConnectionRepository.Delete(connection);
+            var lineChanges = await unitOfWork.SaveChangesAsync(cancellationToken);
 
             if (lineChanges > 0)
                 return Result<ConfirmationResponse>.Success(new ConfirmationResponse { Message = "Connection deleted successfully" });
 
-            return Result<ConfirmationResponse>.Failure(ErrorKind.BadRequest, "Failed to delete connection");
+            throw new InvalidOperationException($"Failed to delete connection-{connectionId}");
         }
 
-        public async Task<Result<ConfirmationResponse>> ActiveConnection(Guid targetConnectionId)
+        public async Task<Result<ConfirmationResponse>> ActiveConnection(Guid targetConnectionId, CancellationToken cancellationToken = default)
         {
             var userId = httpContext?.HttpContext?.User.FindFirstValue("oid");
-            if (string.IsNullOrEmpty(userId))
-                return Result<ConfirmationResponse>.Failure(ErrorKind.NotFound, "User id not found");
 
-            var user = await unitOfWork.UserRepository.GetByIdAsync(Guid.Parse(userId), true);
+            var user = await unitOfWork.UserRepository.GetByIdAsync(Guid.Parse(userId!), true);
             if (user == null)
-                return Result<ConfirmationResponse>.Failure(ErrorKind.NotFound, "User not found");
+                return Error.NotFound(ErrorCodes.User.NotFound, "User not found");
 
-            var targetConnection = await unitOfWork.ConnectionRepository.GetByIdAsync(targetConnectionId);
+            var targetConnection = await unitOfWork.ConnectionRepository.GetByIdAsync(targetConnectionId, cancellationToken: cancellationToken);
 
             if (targetConnection == null)
-                return Result<ConfirmationResponse>.Failure(ErrorKind.NotFound, "Target connection not found");
+                return Error.NotFound(ErrorCodes.Connection.NotFound, "Target connection not found");
 
             user.ActiveConnectionId = targetConnectionId;
             var lineChanges = await unitOfWork.SaveChangesAsync();
@@ -221,18 +170,17 @@ namespace FabricExplorerBackend.Application.Connection
             if (lineChanges > 0)
                 return Result<ConfirmationResponse>.Success(new ConfirmationResponse() { Message = "Active connection succeeded" });
 
-            return Result<ConfirmationResponse>.Failure(ErrorKind.BadRequest, "Failed active connection");
+            throw new InvalidOperationException($"Failed to active connection-{targetConnectionId}");
         }
 
-        public async Task<Result<ConnectionResponse>> GetActiveConnectionAsync()
+        public async Task<Result<ConnectionResponse>> GetActiveConnectionAsync(CancellationToken cancellationToken = default)
         {
             var userId = httpContext?.HttpContext?.User.FindFirstValue("oid");
-            if (string.IsNullOrEmpty(userId))
-                return Result<ConnectionResponse>.Failure(ErrorKind.NotFound, "User id not found");
 
-            var user = await unitOfWork.UserRepository.GetByIdWithConnectionAsync(Guid.Parse(userId));
+            var user = await unitOfWork.UserRepository.GetByIdWithConnectionAsync(Guid.Parse(userId!), cancellationToken: cancellationToken);
+
             if (user == null)
-                return Result<ConnectionResponse>.Failure(ErrorKind.NotFound, "User not found");
+                return Error.NotFound(ErrorCodes.User.NotFound, "User not found");
 
             return Result<ConnectionResponse>.Success(connectionMapper.Map(user.ActiveConnection));
         }
