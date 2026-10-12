@@ -2,7 +2,7 @@
 
 namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces
 {
-    public interface IUserRepository : IGenericeRepository<User>
+    public interface IUserRepository : IGenericRepository<User>
     {
         Task<User?> GetByIdWithConnectionAsync(Guid userId, bool trackChanges = false);
     }

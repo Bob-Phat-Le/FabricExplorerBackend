@@ -1,7 +1,7 @@
-using FabricExplorerBackend.Extensions;
+using FabricExplorerBackend.Api.ExceptionHandling;
+using FabricExplorerBackend.Api.Startup;
+using FabricExplorerBackend.Api.TestAuthenticationHandler;
 using FabricExplorerBackend.Infrastructures.Persistences;
-using FabricExplorerBackend.Middlewares;
-using FabricExplorerBackend.TestAuthenticationHandler;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;

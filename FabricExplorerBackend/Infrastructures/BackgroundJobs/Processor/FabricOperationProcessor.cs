@@ -1,0 +1,14 @@
+﻿using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
+
+namespace FabricExplorerBackend.Infrastructures.Workers.Processor
+{
+    public class FabricOperationProcessor(
+        IUnitOfWork unitOfWork) : IFabricOperationProcessor
+    {
+        public Task ProcessNotDoneOperationsAsync()
+        {
+            var operations = unitOfWork.FabricOperationRepository.GetAllNotDoneOperationsAsync();
+            throw new NotImplementedException();
+        }
+    }
+}
