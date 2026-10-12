@@ -4,6 +4,6 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interf
 {
     public interface IConnectionRepository : IGenericRepository<Connection>
     {
-        Task<Connection?> CheckDuplicateWorkspaceIdAsync(Guid workspaceId);
+        Task<Connection?> CheckDuplicateWorkspaceIdAsync(Guid workspaceId, CancellationToken cancellationToken = default);
     }
 }

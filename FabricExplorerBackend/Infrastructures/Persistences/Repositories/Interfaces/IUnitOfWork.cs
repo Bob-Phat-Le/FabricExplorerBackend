@@ -4,10 +4,10 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interf
 {
     public interface IUnitOfWork : IDisposable
     {
-        Task<IDbContextTransaction> StartTransaction();
-        Task CommitTransaction();
-        Task RollbackTransaction();
-        Task<int> SaveChangesAsync();
+        Task<IDbContextTransaction> StartTransaction(CancellationToken cancellationToken = default);
+        Task CommitTransaction(CancellationToken cancellationToken = default);
+        Task RollbackTransaction(CancellationToken cancellationToken = default);
+        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
         IConnectionRepository ConnectionRepository { get; }
         IUserRepository UserRepository { get; }

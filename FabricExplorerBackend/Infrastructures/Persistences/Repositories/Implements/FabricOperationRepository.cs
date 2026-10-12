@@ -7,33 +7,28 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
 {
     public class FabricOperationRepository(FabricExplorerDbContext context) : IFabricOperationRepository
     {
-        public async Task AddAsync(FabricOperation entity)
+        public Task AddAsync(FabricOperation entity, CancellationToken cancellationToken = default)
         {
-            await context.Operations.AddAsync(entity);
+            return context.Operations.AddAsync(entity, cancellationToken).AsTask();
         }
 
-        public Task Delete(FabricOperation entity)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task DeleteAll()
+        public void Delete(FabricOperation entity)
         {
             throw new NotImplementedException();
         }
 
-        public Task<(IEnumerable<FabricOperation>, int)> GetAllAsync(int skip, int take, bool trackChanges = false)
+        public Task<(List<FabricOperation>, int)> GetAllAsync(int skip, int take, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }
 
-        public async Task<IEnumerable<FabricOperation>> GetAllNotDoneOperationsAsync(bool trackChanges = false)
+        public Task<List<FabricOperation>> GetAllNotDoneOperationsAsync(bool trackChanges = false, CancellationToken cancellationToken = default)
         {
             var query = context.Operations.AsQueryable();
             if (!trackChanges)
                 query = query.AsNoTracking();
 
-            return await query.Where(op => op.Status == FabricOperationStatus.Pending || op.Status == FabricOperationStatus.Running).ToListAsync();
+            return query.Where(op => op.Status == FabricOperationStatus.Pending || op.Status == FabricOperationStatus.Running).ToListAsync(cancellationToken);
         }
 
         public Task<FabricOperation?> GetByIdAsync(Guid id, bool trackChanges = false, CancellationToken cancellationToken = default)
@@ -45,7 +40,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             return query.FirstOrDefaultAsync(op => op.Id == id, cancellationToken);
         }
 
-        public Task Update(FabricOperation entity)
+        public void Update(FabricOperation entity)
         {
             throw new NotImplementedException();
         }

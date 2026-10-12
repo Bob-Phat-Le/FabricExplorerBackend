@@ -5,7 +5,7 @@ namespace FabricExplorerBackend.Application.Operation
 {
     public interface IFabricOperationService
     {
-        Task<Result<FabricOperationResponse>> CreateFabricOperationAsync(CreateFabricOperationRequest request);
-        Task<Result<FabricOperationResponse>> GetFabricOperationByIdAsync(Guid id);
+        Task<Result<FabricOperationResponse>> CreateFabricOperationAsync(CreateFabricOperationRequest request, CancellationToken cancellationToken = default);
+        Task<Result<FabricOperationResponse>> GetFabricOperationByIdAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }

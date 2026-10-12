@@ -13,7 +13,7 @@ namespace FabricExplorerBackend.Domain.Entities
 
         public Guid? UpdatedBy { get; set; }
 
-        public bool IsDeleted { get; set; }
+        public bool IsDeleted => DeletedAt.HasValue;
 
         public DateTimeOffset? DeletedAt { get; set; }
 
