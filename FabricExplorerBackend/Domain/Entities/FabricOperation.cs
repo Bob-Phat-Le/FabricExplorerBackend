@@ -12,16 +12,16 @@ namespace FabricExplorerBackend.Domain.Entities
         public DateTimeOffset? NextPollAt { get; set; }
         public DateTimeOffset? LastPolledAt { get; set; }
         public int? PercentComplete { get; set; }
-
-        // Ngữ cảnh để worker tạo lại Fabric client và poll (token nằm trong Connection)
         public Guid ConnectionId { get; set; }
         public Guid WorkspaceId { get; set; }
-        // Id của item bị tác động (vd: mirrored database id)
         public Guid? ResourceId { get; set; }
         public string? ErrorCode { get; set; }
         public string? ErrorMessage { get; set; }
-
         public DateTimeOffset CreatedAt { get; set; }
         public DateTimeOffset? UpdatedAt { get; set; }
+        public string? ResourceName { get; set; }
+        public int ConsecutivePollFailures { get; set; }
+        public DateTimeOffset? LockedUntil { get; set; }
+        public DateTimeOffset? CompletedAt { get; set; }
     }
 }

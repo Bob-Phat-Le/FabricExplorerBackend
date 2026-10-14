@@ -1,5 +1,4 @@
 ﻿using Azure;
-using Azure.Identity;
 using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
 using FabricExplorerBackend.Application.Operation;
 using FabricExplorerBackend.Commons.Errors;

@@ -26,5 +26,8 @@ namespace FabricExplorerBackend.Infrastructures.Cache
             }
             await redis.StringSetAsync(key, value.ToString());
         }
+
+        public async Task RemoveAsync(string key)
+            => await muxer.GetDatabase().KeyDeleteAsync(key);
     }
 }

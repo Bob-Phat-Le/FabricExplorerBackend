@@ -2,7 +2,6 @@
 using FabricExplorerBackend.Api.Extensions;
 using FabricExplorerBackend.Application.MirroredDatabase;
 using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
-using FabricExplorerBackend.Commons.Results;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FabricExplorerBackend.Api.Controllers

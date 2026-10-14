@@ -30,46 +30,13 @@ builder.Services
         options => { }
     );
 
-// -- Test Cors
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("MyAllowSpecificOrigin", policy =>
-    {
-        policy.WithOrigins("http://127.0.0.1:5500")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
-
-// -- Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// -- Datas
-builder.Services.AddDbContext<FabricExplorerDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("FabricExplorerDatabase")));
-builder.Services.AddSingleton<IConnectionMultiplexer>(
-    ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("RedisCache")!));
-
-// -- Http
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 
-builder.Services
-    .AddDataProtection()
-    .SetApplicationName("FabricExplorerBackend")
-    .PersistKeysToFileSystem(
-        new DirectoryInfo(
-            Path.Combine(
-                builder.Environment.ContentRootPath,
-                "DataProtectionKeys")));
-builder.Services.AddSingleton<IDataProtector>(sp =>
-    sp.GetRequiredService<IDataProtectionProvider>()
-      .CreateProtector("FabricExplorer.Secrets"));
-
-builder.Services.AddRepositories();
-builder.Services.AddServices();
-builder.Services.AddMappers();
+builder.Services.AddStartupDependencyInjection(builder.Configuration);
 builder.Services.AddGlobalExceptionHandler();
 
 var app = builder.Build();

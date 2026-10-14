@@ -1,14 +1,10 @@
-﻿using Azure;
-using Azure.Identity;
-using FabricExplorerBackend.Application.Warhouse.Contracts;
+﻿using FabricExplorerBackend.Application.Warhouse.Contracts;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Sql;
-using Microsoft.Data.SqlClient;
-using Microsoft.Fabric.Api.Warehouse.Models;
 
 namespace FabricExplorerBackend.Application.Warhouse
 {
@@ -30,7 +26,7 @@ namespace FabricExplorerBackend.Application.Warhouse
 
             var warehouseTask = context.Client.Warehouse.Items.GetWarehouseAsync(workspaceId, warehouseId, cancellationToken: cancellationToken);
             var workspaceTask = context.Client.Core.Workspaces.GetWorkspaceAsync(workspaceId, cancellationToken: cancellationToken);
-            
+
             await Task.WhenAll(warehouseTask, workspaceTask);
 
             var warehouse = (await warehouseTask).Value;

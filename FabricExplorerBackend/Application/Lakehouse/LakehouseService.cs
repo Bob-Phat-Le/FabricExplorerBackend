@@ -8,6 +8,7 @@ using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces
 namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 {
     public partial class LakehouseService(
+        ILogger<LakehouseService> logger,
         IUnitOfWork unitOfWork,
         IConfiguration configuration,
         IFabricRestClientFactory fabricRestClientFactory,

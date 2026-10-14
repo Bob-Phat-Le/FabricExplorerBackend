@@ -12,5 +12,6 @@
         public Guid ConnectionId { get; set; }
         public Guid WorkspaceId { get; set; }
         public Guid? ResourceId { get; set; }
+        public string ResourceName { get; set; } = null!;
     }
 }

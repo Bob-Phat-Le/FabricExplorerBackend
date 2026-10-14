@@ -6,6 +6,14 @@
         Running,
         Succeeded,
         Failed,
-        Cancelled
+        Cancelled,
+        TimedOut,
+        Unknown
+    }
+
+    public static class FabricOperationStatusExtensions
+    {
+        public static bool IsTerminal(this FabricOperationStatus status)
+            => status is not (FabricOperationStatus.Pending or FabricOperationStatus.Running);
     }
 }

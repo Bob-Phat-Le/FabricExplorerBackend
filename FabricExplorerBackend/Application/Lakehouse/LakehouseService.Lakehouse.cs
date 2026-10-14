@@ -1,6 +1,4 @@
-﻿using Azure;
-using Azure.Identity;
-using FabricExplorerBackend.Application.Lakehouse.Contracts;
+﻿using FabricExplorerBackend.Application.Lakehouse.Contracts;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
 

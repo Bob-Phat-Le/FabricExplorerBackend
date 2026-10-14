@@ -9,9 +9,14 @@
         public static class Operation
         {
             public const string NotFound = "operation.not_found";
+            public const string TimedOut = "operation.timed_out";
+            public const string PollGaveUp = "operation.poll_gave_up";
+            public const string FabricLost = "operation.fabric_not_found";
+            public const string FabricFailed = "operation.fabric_failed";
+            public const string UntrustedUrl = "operation.untrusted_url";
         }
-        public static class Connection 
-        { 
+        public static class Connection
+        {
             public const string NotFound = "connection.not_found";
             public const string Duplicated = "connection.duplicated";
             public const string BadRequest = "connection.bad_request";

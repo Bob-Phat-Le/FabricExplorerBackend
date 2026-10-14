@@ -2,6 +2,6 @@
 {
     public interface IFabricOperationProcessor
     {
-        Task ProcessNotDoneOperationsAsync();
+        Task PollAsync(Guid operationId, CancellationToken ct);
     }
 }

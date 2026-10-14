@@ -1,5 +1,4 @@
-﻿using Azure;
-using FabricExplorerBackend.Application.Connection.Contracts;
+﻿using FabricExplorerBackend.Application.Connection.Contracts;
 using FabricExplorerBackend.Commons.Contracts;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Paginations;
@@ -85,7 +84,8 @@ namespace FabricExplorerBackend.Application.Connection
                 await cacheService.SetValueAsync(cacheKey, System.Text.Json.JsonSerializer.Serialize(connection));
                 return Result<ConfirmationResponse>.Success(new ConfirmationResponse { Message = "Connection updated successfully" });
             }
-            throw new InvalidOperationException($"Failed to update connection-{connectionId}");
+            throw new 
+                ($"Failed to update connection-{connectionId}");
         }
 
         public async Task<Result<ConfirmationResponse>> TestConnection(Guid connectionId, CancellationToken cancellationToken = default)
