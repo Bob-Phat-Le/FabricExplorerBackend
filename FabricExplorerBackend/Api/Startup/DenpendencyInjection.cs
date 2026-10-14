@@ -10,58 +10,104 @@ using FabricExplorerBackend.Infrastructures.Fabric.Client;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
 using FabricExplorerBackend.Infrastructures.Identity;
+using FabricExplorerBackend.Infrastructures.Persistences;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Security;
 using FabricExplorerBackend.Infrastructures.Sql;
 using FabricExplorerBackend.Mappers;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 
 namespace FabricExplorerBackend.Api.Startup
 {
     public static class DenpendencyInjection
     {
-        public static IServiceCollection AddServices(this IServiceCollection serviceCollection)
+        public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
-            serviceCollection.AddScoped<ITokenService, TokenService>();
-            serviceCollection.AddScoped<IFabricContextFactory, FabricContextFactory>();
-            serviceCollection.AddScoped<IConnectionService, ConnectionService>();
-            serviceCollection.AddScoped<IClientFactory, ClientFactory>();
-            serviceCollection.AddScoped<ICacheService, CacheService>();
-            serviceCollection.AddScoped<ILakehouseService, LakehouseService>();
-            serviceCollection.AddScoped<IFabricOperationService, FabricOperationService>();
-            //serviceCollection.AddScoped<IFabricRestClient, FabricRestClient>();
-            serviceCollection.AddScoped<IFabricRestClientFactory, FabricRestClientFactory>();
-            serviceCollection.AddScoped<ILakehouseTableStatsService, LakehouseTableStatsService>();
-            serviceCollection.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
-            serviceCollection.AddScoped<ISqlQueryService, SqlQueryService>();
-            serviceCollection.AddSingleton<ISingleFlight, SingleFlight>();   // danh sách lần chạy đang diễn ra phải dùng chung toàn app
-            serviceCollection.AddScoped<ICachedFetcher, CachedFetcher>();
-            serviceCollection.AddScoped<IWorkspaceService, WorkspaceService>();
-            serviceCollection.AddScoped<IMirroredDatabaseService, MirroredDatabaseService>();
-            serviceCollection.AddScoped<IWarehouseService, WarehouseService>();
+            services.AddScoped<ITokenService, TokenService>();
+            services.AddScoped<IFabricContextFactory, FabricContextFactory>();
+            services.AddScoped<IConnectionService, ConnectionService>();
+            services.AddScoped<IClientFactory, ClientFactory>();
+            services.AddScoped<ICacheService, CacheService>();
+            services.AddScoped<ILakehouseService, LakehouseService>();
+            services.AddScoped<IFabricOperationService, FabricOperationService>();
+            //services.AddScoped<IFabricRestClient, FabricRestClient>();
+            services.AddScoped<IFabricRestClientFactory, FabricRestClientFactory>();
+            services.AddScoped<ILakehouseTableStatsService, LakehouseTableStatsService>();
+            services.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
+            services.AddScoped<ISqlQueryService, SqlQueryService>();
+            services.AddSingleton<ISingleFlight, SingleFlight>();   // danh sách lần chạy đang diễn ra phải dùng chung toàn app
+            services.AddScoped<ICachedFetcher, CachedFetcher>();
+            services.AddScoped<IWorkspaceService, WorkspaceService>();
+            services.AddScoped<IMirroredDatabaseService, MirroredDatabaseService>();
+            services.AddScoped<IWarehouseService, WarehouseService>();
 
-            return serviceCollection;
+            return services;
         }
 
-        public static IServiceCollection AddRepositories(this IServiceCollection serviceCollection)
+        public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
-            serviceCollection.AddSingleton<ISecretProtector, SecretProtector>();
-            serviceCollection.AddScoped<IUnitOfWork, UnitOfWork>();
-            serviceCollection.AddScoped<IConnectionRepository, ConnectionRepository>();
-            serviceCollection.AddScoped<IUserRepository, UserRepository>();
-            serviceCollection.AddScoped<IFabricOperationRepository, FabricOperationRepository>();
+            services.AddDbContext<FabricExplorerDbContext>(options =>
+                options.UseNpgsql(configuration.GetConnectionString("FabricExplorerDatabase")));
+            services.AddSingleton<IConnectionMultiplexer>(
+                ConnectionMultiplexer.Connect(configuration.GetConnectionString("RedisCache")!));
 
-            return serviceCollection;
+            services.AddSingleton<ISecretProtector, SecretProtector>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IConnectionRepository, ConnectionRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IFabricOperationRepository, FabricOperationRepository>();
+
+            return services;
         }
 
-        public static IServiceCollection AddMappers(this IServiceCollection serviceCollection)
+        public static IServiceCollection AddApplicationMappers(this IServiceCollection services)
         {
-            serviceCollection.AddScoped<IConnectionMapper, ConnectionMapper>();
-            serviceCollection.AddScoped<IFabricOperationMapper, FabricOperationMapper>();
-            serviceCollection.AddScoped<ILakehouseMapper, LakehouseMapper>();
-            serviceCollection.AddScoped<IMirroredDatabaseMapper, MirroredDatabaseMapper>();
+            services.AddScoped<IConnectionMapper, ConnectionMapper>();
+            services.AddScoped<IFabricOperationMapper, FabricOperationMapper>();
+            services.AddScoped<ILakehouseMapper, LakehouseMapper>();
+            services.AddScoped<IMirroredDatabaseMapper, MirroredDatabaseMapper>();
 
-            return serviceCollection;
+            return services;
+        }
+
+        public static IServiceCollection AddApplicationDataProtection(this IServiceCollection services)
+        {
+            var environment = services
+                .BuildServiceProvider()
+                .GetRequiredService<IHostEnvironment>();
+
+            services
+                .AddDataProtection()
+                .SetApplicationName("FabricExplorerBackend")
+                .PersistKeysToFileSystem(
+                    new DirectoryInfo(
+                        Path.Combine(
+                            environment.ContentRootPath,
+                            "DataProtectionKeys")));
+
+            services.AddSingleton<IDataProtector>(sp =>
+                sp.GetRequiredService<IDataProtectionProvider>()
+                  .CreateProtector("FabricExplorer.Secrets"));
+
+            return services;
+        }
+
+        public static IServiceCollection AddApplicationCors(this IServiceCollection services)
+        {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("MyAllowSpecificOrigin", policy =>
+                {
+                    policy.WithOrigins("http://127.0.0.1:5500")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
+            return services;
         }
     }
 }

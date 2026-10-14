@@ -1,6 +1,4 @@
-﻿using Azure;
-using Azure.Identity;
-using FabricExplorerBackend.Application.Workspace.Contracts;
+﻿using FabricExplorerBackend.Application.Workspace.Contracts;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Cache;

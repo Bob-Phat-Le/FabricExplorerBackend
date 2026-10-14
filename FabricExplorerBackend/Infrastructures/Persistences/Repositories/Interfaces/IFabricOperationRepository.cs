@@ -4,6 +4,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interf
 {
     public interface IFabricOperationRepository : IGenericRepository<FabricOperation>
     {
-        Task<List<FabricOperation>> GetAllNotDoneOperationsAsync(bool trackChanges = false, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<Guid>> GetDueOperationIdsAsync(DateTimeOffset now, int take, CancellationToken ct);
+        Task<bool> TryClaimAsync(Guid id, DateTimeOffset now, TimeSpan lease, CancellationToken ct);
     }
 }

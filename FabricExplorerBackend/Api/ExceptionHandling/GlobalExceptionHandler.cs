@@ -1,7 +1,7 @@
 ﻿using FabricExplorerBackend.Api.Contracts;
 using FabricExplorerBackend.Api.Extensions;
+using FabricExplorerBackend.Commons.Errors;
 using Microsoft.AspNetCore.Diagnostics;
-using Serilog.AspNetCore;
 
 namespace FabricExplorerBackend.Api.ExceptionHandling
 {

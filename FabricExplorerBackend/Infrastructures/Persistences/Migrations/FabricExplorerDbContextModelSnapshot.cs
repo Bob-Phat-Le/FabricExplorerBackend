@@ -99,8 +99,14 @@ namespace FabricExplorerBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("ConnectionId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("ConsecutivePollFailures")
+                        .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -109,7 +115,8 @@ namespace FabricExplorerBackend.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ErrorMessage")
-                        .HasColumnType("text");
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
 
                     b.Property<Guid>("FabricOperationId")
                         .HasColumnType("uuid");
@@ -118,6 +125,9 @@ namespace FabricExplorerBackend.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTimeOffset?>("LastPolledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("LockedUntil")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset?>("NextPollAt")
@@ -133,6 +143,10 @@ namespace FabricExplorerBackend.Migrations
                     b.Property<Guid?>("ResourceId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ResourceName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -143,6 +157,8 @@ namespace FabricExplorerBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Status", "NextPollAt");
 
                     b.ToTable("Operations");
                 });

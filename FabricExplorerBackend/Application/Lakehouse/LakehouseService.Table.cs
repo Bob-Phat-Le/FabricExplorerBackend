@@ -1,6 +1,7 @@
 ﻿using FabricExplorerBackend.Application.Lakehouse;
 using FabricExplorerBackend.Application.Lakehouse.Contracts;
-using FabricExplorerBackend.Commons.Contracts;
+using FabricExplorerBackend.Application.Operation;
+using FabricExplorerBackend.Application.Operation.Contracts;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Paginations;
 using FabricExplorerBackend.Commons.Results;
@@ -75,34 +76,53 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
                 new PagedResponseWithCursor<IEnumerable<TableResponse>>(result, pageInformation));
         }
 
-        public async Task<Result<ConfirmationResponse>> LoadTableAsync(Guid connectionId, Guid lakehouseId, string tableName, LoadTableRequest request, CancellationToken cancellationToken = default)
+        public async Task<Result<OperationAcceptedResponse>> LoadTableAsync(
+            Guid connectionId, Guid workspaceId, Guid lakehouseId, string tableName,
+            ApplicationLoadTableRequest request, CancellationToken cancellationToken = default)
         {
             var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
-            if (connection == null)
-                return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
+            if (connection is null)
+                return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found.");
 
             var context = await fabricContextFactory.CreateFabricContextWithoutTokenAsync(connection, cancellationToken);
 
-            var lroResponse = await context.Client.Lakehouse.Tables.LoadTableAsync(connection.WorkspaceId, lakehouseId, tableName, request);
+            var loadTableRequest = lakehouseMapper.Map(request);
 
-            if (lroResponse.Status == StatusCodes.Status202Accepted)
+            var response = await context.Client.Lakehouse.Tables.LoadTableAsync(
+                workspaceId, lakehouseId, tableName, loadTableRequest, cancellationToken: CancellationToken.None);
+
+            if (response.Status != StatusCodes.Status202Accepted)
+                return Result<OperationAcceptedResponse>.Success(new(null, "Table load completed."));
+
+            response.Headers.TryGetValue("x-ms-operation-id", out var fabricOperationId);
+            response.Headers.TryGetValue("Location", out var location);
+
+            try
             {
-                var createOperationRequest = fabricOperationMapper.Map(lroResponse);
-                var confirmation = await fabricOperationService.CreateFabricOperationAsync(createOperationRequest, cancellationToken);
+                var operationRequest = fabricOperationMapper.Map(response);   // đọc x-ms-operation-id, Location, Retry-After
+                operationRequest.OperationType = FabricOperationTypes.LoadTable;
+                operationRequest.ConnectionId = connectionId;
+                operationRequest.WorkspaceId = workspaceId;
+                operationRequest.ResourceId = lakehouseId;
+                operationRequest.ResourceName = tableName;
 
-                var headers = request
-                    .GetType()
-                    .GetProperties()
-                    .Where(p => p.GetValue(request) != null)
-                    .ToDictionary(
-                        p => p.Name,
-                        p => p.GetValue(request)!.ToString()
-                    );
+                var created = await fabricOperationService.CreateFabricOperationAsync(operationRequest, cancellationToken);
 
-                foreach (var (key, value) in headers)
-                    httpContext.HttpContext?.Response?.Headers?.Add(key, value);
+                return Result<OperationAcceptedResponse>.Success(new(
+                    created.Data!.Id,
+                    "Load table accepted. Poll GET /api/operations/{operationId} until the status is final."));
             }
-            throw new NotImplementedException();
+            catch (Exception ex)
+            {
+                logger.LogError(ex,
+                    "LoadTable was accepted by Fabric but the operation could not be tracked. " +
+                    "FabricOperationId={FabricOperationId} Location={Location} Table={Table} Lakehouse={LakehouseId}",
+                    fabricOperationId, location, tableName, lakehouseId);
+
+                return Result<OperationAcceptedResponse>.Success(new(
+                    null,
+                    "Load table was accepted by Fabric but its progress cannot be tracked. Check the table status later."));
+            }
         }
     }
 }

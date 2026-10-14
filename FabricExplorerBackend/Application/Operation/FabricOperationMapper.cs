@@ -18,7 +18,7 @@ namespace FabricExplorerBackend.Application.Operation
             {
                 OperationId = Guid.Parse(response.GetXmsOperationIdHeader()),
                 OperationUrl = new Uri(response.GetLocationHeader()),
-                RetryAfter = TimeSpan.FromSeconds(retryAfter is null ? DefaultRetryAfterSeconds : Convert.ToDouble(retryAfter))
+                RetryAfter = TimeSpan.FromSeconds(retryAfter is null ? DefaultRetryAfterSeconds : Convert.ToDouble(retryAfter)),
             };
         }
 

@@ -1,12 +1,10 @@
 ﻿using Azure;
 using Azure.Identity;
-using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
 using Microsoft.Data.SqlClient;
 using StackExchange.Redis;
-using ApplicationException = FabricExplorerBackend.Commons.Errors.ApplicationException;
 
-namespace FabricExplorerBackend.Api.ExceptionHandling
+namespace FabricExplorerBackend.Commons.Errors
 {
     public sealed record Failure(int Status, string Code, string Message, LogLevel Level, bool LogStackTrace, object? Details = null);
 

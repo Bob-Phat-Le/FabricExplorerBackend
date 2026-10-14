@@ -54,39 +54,22 @@ namespace FabricExplorerBackend.Application.Lakehouse
             await Task.WhenAll(deltaTables.Select(async name =>
             {
                 await gate.WaitAsync(cancellationToken);
-                try
-                {
-                    var key = cachedFetcher.CreateKey(
-                        "table-stats", connection.Id.ToString(), workspaceId.ToString(), lakehouseId.ToString(), name);
+                var key = cachedFetcher.CreateKey(
+                    "table-stats", connection.Id.ToString(), workspaceId.ToString(), lakehouseId.ToString(), name);
 
-                    result[name] = await cachedFetcher.GetOrFetchAsync(
-                        key, ttl,
-                        async ct =>
-                        {
-                            var src = await source.Value;
-                            return await GetTableStatsAsync(
-                                src.FileSystem, connection, lakehouseId, src.SqlEndpoint, src.Schema, name, ct);
-                        },
-                        bypassCache,
-                        // Kết quả lỗi thường là tạm thời (endpoint đang provision, mạng...) nên không được cache
-                        cacheWhen: stats => stats.Status != TableStatus.Error,
-                        cancellationToken: cancellationToken);
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    // Lỗi ở mức lakehouse/token/timeout: chỉ đánh dấu bảng này, không làm hỏng cả trang
-                    result[name] = new TableStats(null, null, TableStatus.Error, ex.Message);
-                }
-                finally
-                {
-                    gate.Release();
-                }
+                result[name] = await cachedFetcher.GetOrFetchAsync(
+                    key, ttl,
+                    async ct =>
+                    {
+                        var src = await source.Value;
+                        return await GetTableStatsAsync(
+                            src.FileSystem, connection, lakehouseId, src.SqlEndpoint, src.Schema, name, ct);
+                    },
+                    bypassCache,
+                    // Kết quả lỗi thường là tạm thời (endpoint đang provision, mạng...) nên không được cache
+                    cacheWhen: stats => stats.Status != TableStatus.Error,
+                    cancellationToken: cancellationToken);
             }));
-
             return result;
         }
 

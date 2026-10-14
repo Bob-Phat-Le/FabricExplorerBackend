@@ -9,23 +9,27 @@ namespace FabricExplorerBackend.Application.Operation
         IUnitOfWork unitOfWork,
         IFabricOperationMapper mapper) : IFabricOperationService
     {
-        public async Task<Result<FabricOperationResponse>> CreateFabricOperationAsync(CreateFabricOperationRequest request, CancellationToken cancellationToken = default)
+        public async Task<Result<FabricOperationResponse>> CreateFabricOperationAsync(
+            CreateFabricOperationRequest request,
+            CancellationToken cancellationToken = default)
         {
             var operation = mapper.Map(request);
             await unitOfWork.FabricOperationRepository.AddAsync(operation);
-            var lineChanges = await unitOfWork.SaveChangesAsync();
 
-            if (lineChanges <= 0)
-                throw new InvalidOperationException($"Failed create operation");
+            if (await unitOfWork.SaveChangesAsync() <= 0)
+                throw new InvalidOperationException(
+                    $"Saving fabric operation {operation.FabricOperationId} affected 0 rows.");
 
             return Result<FabricOperationResponse>.Success(mapper.Map(operation));
         }
 
-        public async Task<Result<FabricOperationResponse>> GetFabricOperationByIdAsync(Guid id, CancellationToken cancellation = default)
+        public async Task<Result<FabricOperationResponse>> GetFabricOperationByIdAsync(
+            Guid connectionId, Guid id, CancellationToken ct = default)
         {
-            var operation = await unitOfWork.FabricOperationRepository.GetByIdAsync(id);
-            if (operation == null)
-                return Error.NotFound(ErrorCodes.Operation.NotFound, "Operation not found");
+            var operation = await unitOfWork.FabricOperationRepository.GetByIdAsync(id, cancellationToken: ct);
+
+            if (operation is null || operation.ConnectionId != connectionId)
+                return Error.NotFound(ErrorCodes.Operation.NotFound, "Operation not found.");
 
             return Result<FabricOperationResponse>.Success(mapper.Map(operation));
         }
