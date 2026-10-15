@@ -1,6 +1,5 @@
 ﻿namespace FabricExplorerBackend.Infrastructures.Fabric.Dtos
 {
-    // Map response của GET /workspaces/{workspaceId}/lakehouses/{lakehouseId}
     public class FabricLakehouseDetailResponse
     {
         public string DisplayName { get; set; } = string.Empty;

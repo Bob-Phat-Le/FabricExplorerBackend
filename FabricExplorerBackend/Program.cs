@@ -1,11 +1,7 @@
 using FabricExplorerBackend.Api.Extensions;
 using FabricExplorerBackend.Api.Startup;
 using FabricExplorerBackend.Api.TestAuthenticationHandler;
-using FabricExplorerBackend.Infrastructures.Persistences;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.EntityFrameworkCore;
-using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 

@@ -21,7 +21,11 @@
             public const string Duplicated = "connection.duplicated";
             public const string BadRequest = "connection.bad_request";
         }
-        public static class Auth { public const string TokenFailed = "auth.token_failed"; }
+        public static class Auth
+        {
+            public const string TokenFailed = "auth.token_failed";
+            public const string Unprotected = "auth.secret_unprotected";
+        }
         public static class Fabric
         {
             public const string NotFound = "fabric.not_found";

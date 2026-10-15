@@ -9,8 +9,6 @@ namespace FabricExplorerBackend.Infrastructures.Sql
     {
         public Task<string> GetAccessTokenAsync(Domain.Entities.Connection connection, CancellationToken cancellationToken = default)
         {
-            // Mỗi dịch vụ có audience riêng nên token SQL khác token của Fabric API;
-            // TokenService phải cache theo cả scope thì hai loại token này mới không lẫn vào nhau
             var scope = configuration.GetValue("Scopes:sql", "https://database.windows.net/.default")!;
             return tokenService.GetOrCreateTokenAsync(connection, scope, cancellationToken);
         }
@@ -30,7 +28,6 @@ namespace FabricExplorerBackend.Infrastructures.Sql
             if (string.IsNullOrWhiteSpace(endpoint.Database))
                 throw new ArgumentException("SQL endpoint database is required.", nameof(endpoint));
 
-            // Dùng builder thay vì ghép chuỗi để tên server/database không làm hỏng connection string
             var builder = new SqlConnectionStringBuilder
             {
                 DataSource = endpoint.Server,

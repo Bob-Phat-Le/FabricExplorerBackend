@@ -31,8 +31,6 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             return affected == 1;
         }
 
-        // ---- Các phương thức còn lại giữ nguyên như hiện tại ----
-
         public Task AddAsync(FabricOperation entity, CancellationToken cancellationToken = default)
             => context.Operations.AddAsync(entity, cancellationToken).AsTask();
 

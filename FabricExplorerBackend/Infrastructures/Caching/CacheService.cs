@@ -1,12 +1,16 @@
-﻿using StackExchange.Redis;
+﻿using FabricExplorerBackend.Infrastructures.Options;
+using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 
 namespace FabricExplorerBackend.Infrastructures.Cache
 {
-    public class CacheService(IConnectionMultiplexer muxer, IConfiguration configuration) : ICacheService
+    public class CacheService(IConnectionMultiplexer muxer, IOptions<CacheOptions> cacheOptions) : ICacheService
     {
+        private CacheOptions cacheOptions = cacheOptions.Value;
+
         public string CreateCacheKey(params string[] keys)
         {
-            return configuration.GetValue<string>("CacheSettings:BaseCacheKey") + ":" + string.Join(":", keys);
+            return cacheOptions.KeyPrefix + ":" + string.Join(":", keys);
         }
 
         public async Task<object?> GetValueAsync(string key)

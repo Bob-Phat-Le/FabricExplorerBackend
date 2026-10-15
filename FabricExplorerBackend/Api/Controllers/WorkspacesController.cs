@@ -10,7 +10,6 @@ namespace FabricExplorerBackend.Api.Controllers
     [ApiController]
     public class WorkspacesController(IWorkspaceService workspaceService) : ControllerBase
     {
-        // Frontend gọi endpoint này trước, rồi dùng từng workspaceId cho /api/workspaces/{id}/Lakehouses|Warehouses|MirroredDatabases
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<WorkspaceListItemResponse>>>> GetAllWorkspaces(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,

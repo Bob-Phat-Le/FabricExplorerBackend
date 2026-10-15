@@ -5,14 +5,12 @@ using Microsoft.AspNetCore.Diagnostics;
 
 namespace FabricExplorerBackend.Api.ExceptionHandling
 {
-    // You may need to install the Microsoft.AspNetCore.Http.Abstractions package into your project
     public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IHostEnvironment env) : IExceptionHandler
     {
         public async ValueTask<bool> TryHandleAsync(HttpContext http, Exception ex, CancellationToken ct)
         {
             if (http.Response.HasStarted) return false;
 
-            // Client đóng kết nối: không phải lỗi, không cần body
             if (ex is OperationCanceledException && http.RequestAborted.IsCancellationRequested)
             {
                 logger.LogDebug("Request aborted by client: {Method} {Path}", http.Request.Method, http.Request.Path);
@@ -23,7 +21,6 @@ namespace FabricExplorerBackend.Api.ExceptionHandling
             var f = ExceptionClassifier.Classify(ex);
             var traceId = http.GetTraceId();
 
-            // Scope của RequestContextMiddleware đã đóng khi exception lên tới đây, nên dựng lại từ HttpContext
             using (logger.BeginScope(http.GetLogProperties()))
             {
                 logger.Log(f.Level, f.LogStackTrace ? ex : null,

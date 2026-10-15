@@ -9,6 +9,7 @@
             services.AddApplicationServices();
             services.AddInfrastructureServices(configuration);
             services.AddApplicationCors();
+            services.AddApplicationOptions(configuration);
 
             return services;
         }

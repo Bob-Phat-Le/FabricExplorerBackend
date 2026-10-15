@@ -5,7 +5,9 @@ using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
+using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace FabricExplorerBackend.Application.MirroredDatabase
 {
@@ -15,29 +17,25 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
         IFabricOperationMapper fabricOperationMapper,
         IFabricOperationService fabricOperationService,
         ICachedFetcher cachedFetcher,
-        IConfiguration configuration,
+        IOptions<CacheOptions> cacheOptions,
         IUnitOfWork unitOfWork,
         ILogger<MirroredDatabaseService> logger) : IMirroredDatabaseService
     {
         private const string MirroringDefinitionFileName = "mirroring.json";
+        private CacheOptions cacheOptions = cacheOptions.Value;
 
-        // ---------------------------------------------------------------- Get Mirrored DB
-
-        // Danh sách nhẹ: chỉ id/tên/workspace. Status và nguồn của từng DB là các lời gọi riêng (status + definition)
-        // nên chỉ lấy ở endpoint chi tiết, khi người dùng thật sự chọn một DB.
         public async Task<Result<IEnumerable<MirroredDatabaseListItemResponse>>> ListMirroredDatabasesAsync(
             Guid connectionId, Guid workspaceId, bool bypassCache = false, CancellationToken cancellationToken = default)
         {
             var connection = await LoadConnectionAsync(connectionId, cancellationToken);
 
-            var ttl = TimeSpan.FromSeconds(configuration.GetValue("Fabric:ItemListCacheSeconds", 60));
+            var ttl = cacheOptions.ItemList;
             var key = cachedFetcher.CreateKey("mirrored-dbs", connectionId.ToString(), workspaceId.ToString());
 
             var items = await cachedFetcher.GetOrFetchAsync<IReadOnlyList<MirroredDatabaseListItemResponse>>(
                 key, ttl,
                 async ct =>
                 {
-                    // Quy tắc của fetch dùng chung: chỉ dùng dữ liệu thuần + context, không dùng UnitOfWork
                     var context = await CreateContextAsync(connection, ct);
 
                     var workspaceTask = context.Client.Core.Workspaces.GetWorkspaceAsync(workspaceId, cancellationToken: ct);
@@ -89,8 +87,6 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
             return Result<MirroredDatabaseDetailResponse>.Success(response);
         }
 
-        // ---------------------------------------------------------------- Get Status
-
         public async Task<Result<MirroringDatabaseStatusResponse>> GetMirroringStatusAsync(
             Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken = default)
         {
@@ -104,7 +100,6 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
 
             var mirroringStatus = (await statusTask).Value;
 
-            // Khi mirroring chưa chạy Fabric có thể từ chối trả trạng thái bảng; vẫn trả về status của database
             var tables = await ListOrEmptyOnRejectedAsync(tablesTask);
 
             var response = mapper.Map(mirroringStatus);
@@ -114,8 +109,6 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
 
             return Result<MirroringDatabaseStatusResponse>.Success(response);
         }
-
-        // ---------------------------------------------------------------- Tables Status
 
         public async Task<Result<IEnumerable<TableMirroringStatusResponse>>> ListTablesMirroringStatusAsync(
             Guid connectionId,
@@ -149,8 +142,6 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
             return Result<IEnumerable<TableMirroringStatusResponse>>.Success(response);
         }
 
-        // ---------------------------------------------------------------- Start / Stop
-
         public Task<Result<MirroringActionResponse>> StartMirroringAsync(Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken = default)
             => ChangeMirroringAsync(connectionId, workspaceId, mirroredDatabaseId, start: true, cancellationToken);
 
@@ -163,15 +154,12 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
             var context = await CreateContextAsync(connectionId, cancellationToken);
             var action = start ? "start" : "stop";
 
-            // Chặn sớm các thao tác thừa để trả lỗi rõ ràng thay vì lỗi chung từ Fabric (bước đọc: hủy được)
             var current = await GetMirroringStatusValueAsync(context, workspaceId, mirroredDatabaseId, cancellationToken);
             if (start && current is MirroringStatus.Running or MirroringStatus.Starting)
                 return Error.Conflict(ErrorCodes.Fabric.Conflict, $"Mirroring is already {current}.");
             if (!start && current is MirroringStatus.Stopped or MirroringStatus.Stopping)
                 return Error.Conflict(ErrorCodes.Fabric.Conflict, $"Mirroring is already {current}.");
 
-            // Từ đây trở đi là THAY ĐỔI trạng thái: KHÔNG gắn với token của request. Nếu client ngắt kết nối giữa chừng,
-            // ta sẽ không biết Fabric đã nhận lệnh hay chưa, và có thể mất bản ghi operation mà worker cần để theo dõi.
             var response = start
                 ? await context.Client.MirroredDatabase.Mirroring.StartMirroringAsync(workspaceId, mirroredDatabaseId, cancellationToken: CancellationToken.None)
                 : await context.Client.MirroredDatabase.Mirroring.StopMirroringAsync(workspaceId, mirroredDatabaseId, cancellationToken: CancellationToken.None);
@@ -183,7 +171,6 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
                     : "Stop mirroring requested. Poll the status endpoint until it becomes Stopped."
             };
 
-            // Start/Stop hiện trả 200, nhưng nếu Fabric trả 202 (LRO) thì lưu operation để worker poll
             if (response.Status == StatusCodes.Status202Accepted)
             {
                 var operationRequest = fabricOperationMapper.Map(response);
@@ -201,8 +188,6 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
 
             return Result<MirroringActionResponse>.Success(result);
         }
-
-        // ---------------------------------------------------------------- Helpers
 
         private sealed class ServiceFailure(ErrorKind status, string message) : Exception(message)
         {
@@ -235,12 +220,10 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
             }
         }
 
-        // mirroring.json cho biết nguồn và schema đích. Definition là lời gọi nặng nhất và gần như không đổi,
-        // nên cache lâu (mặc định 60 phút) và gộp các lời gọi đồng thời (cùng cơ chế với danh sách).
         private async Task<MirroringDefinitionInfo?> GetDefinitionInfoAsync(
             FabricContext context, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken)
         {
-            var ttl = TimeSpan.FromMinutes(configuration.GetValue("Fabric:MirroringDefinitionCacheMinutes", 60));
+            var ttl = cacheOptions.MirroringDefinition;
             var key = cachedFetcher.CreateKey("mirrored-db-definition", workspaceId.ToString(), mirroredDatabaseId.ToString());
 
             try
@@ -255,7 +238,6 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
                             .FirstOrDefault(part => part.Path.Equals(MirroringDefinitionFileName, StringComparison.OrdinalIgnoreCase))?
                             .Payload;
 
-                        // null (không đọc được) sẽ không được cache
                         return MirroringDefinitionInfo.Parse(payload);
                     },
                     cancellationToken: cancellationToken);
@@ -266,7 +248,6 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
             }
             catch (Exception ex)
             {
-                // Thiếu thông tin nguồn không nên làm hỏng cả response
                 logger.LogWarning(ex, "Cannot read definition of mirrored database {MirroredDatabaseId}.", mirroredDatabaseId);
                 return null;
             }

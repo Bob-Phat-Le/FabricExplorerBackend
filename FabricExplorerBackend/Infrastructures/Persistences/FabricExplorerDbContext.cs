@@ -13,7 +13,6 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure relationships and constraints
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(u => u.Id);
@@ -33,7 +32,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
             modelBuilder.Entity<FabricOperation>(entity =>
             {
                 entity.HasKey(o => o.Id);
-                entity.HasIndex(o => new { o.Status, o.NextPollAt });   // phục vụ truy vấn "đến hạn poll"
+                entity.HasIndex(o => new { o.Status, o.NextPollAt });
                 entity.Property(o => o.ErrorMessage).HasMaxLength(2000);
                 entity.Property(o => o.ResourceName).HasMaxLength(256);
             });

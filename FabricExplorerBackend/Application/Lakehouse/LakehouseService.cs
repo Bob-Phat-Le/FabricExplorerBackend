@@ -3,16 +3,18 @@ using FabricExplorerBackend.Application.Operation;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
+using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 {
     public partial class LakehouseService(
         ILogger<LakehouseService> logger,
         IUnitOfWork unitOfWork,
-        IConfiguration configuration,
+        IOptions<FabricOptions> fabricOptions,
+        IOptions<CacheOptions> cacheOptions,
         IFabricRestClientFactory fabricRestClientFactory,
-        IHttpContextAccessor httpContext,
         IFabricContextFactory fabricContextFactory,
         IFabricOperationMapper fabricOperationMapper,
         IFabricOperationService fabricOperationService,
@@ -20,5 +22,7 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
         ILakehouseTableStatsService tableStatsService,
         ICachedFetcher cachedFetcher) : ILakehouseService
     {
+        private FabricOptions fabricOptions = fabricOptions.Value;
+        private CacheOptions cacheOption = cacheOptions.Value;
     }
 }

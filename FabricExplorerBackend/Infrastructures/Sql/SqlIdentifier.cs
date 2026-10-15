@@ -1,16 +1,9 @@
 ﻿namespace FabricExplorerBackend.Infrastructures.Sql
 {
-    /// <summary>
-    /// Tên schema/bảng/cột không thể truyền qua SqlParameter, nên phải được quote đúng cách
-    /// trước khi ghép vào câu lệnh để tránh SQL injection.
-    /// </summary>
     public static class SqlIdentifier
     {
         private const int MaxLength = 128;
 
-        /// <summary>
-        /// Quote từng phần rồi nối bằng dấu chấm. Quote("dbo", "Sales") trả về [dbo].[Sales].
-        /// </summary>
         public static string Quote(params string[] parts)
         {
             if (parts == null || parts.Length == 0)

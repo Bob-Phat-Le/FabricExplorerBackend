@@ -15,7 +15,7 @@ namespace FabricExplorerBackend.Api.Extensions
                 ["UserId"] = http.User.FindFirst("oid")?.Value,
                 ["ConnectionId"] = http.Request.Headers["X-Connection-Id"].FirstOrDefault()
             };
-            foreach (var (key, value) in http.Request.RouteValues)   // workspaceId, lakehouseId...
+            foreach (var (key, value) in http.Request.RouteValues)
                 if (key is not ("controller" or "action")) props[key] = value;
             return props;
         }

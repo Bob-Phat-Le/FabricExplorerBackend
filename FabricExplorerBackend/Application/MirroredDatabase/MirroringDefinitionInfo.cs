@@ -3,7 +3,6 @@ using System.Text.Json;
 
 namespace FabricExplorerBackend.Application.MirroredDatabase
 {
-    // Thông tin lấy từ phần mirroring.json trong definition của mirrored database
     public record MirroringDefinitionInfo(string? SourceType, string? SourceName, string? DefaultSchema)
     {
         public static MirroringDefinitionInfo? Parse(string? base64Payload)
