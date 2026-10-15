@@ -6,7 +6,6 @@ using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Paginations;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
-using Microsoft.Fabric.Api.Lakehouse.Models;
 
 namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 {
@@ -29,13 +28,12 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 
             var client = fabricRestClientFactory.CreateFabricRestClient(connection);
 
-            // Workspace lấy từ route (không phải connection.WorkspaceId) để lakehouse ở workspace nào cũng đọc được
             var pageSize = paginationRequest?.PageSize ?? 20;
             var continuationToken = paginationRequest?.ContinuationToken;
             var isFirstPage = string.IsNullOrWhiteSpace(continuationToken);
 
             var url =
-                $"{configuration.GetValue<string>("External:BaseFabricApiUrl")}" +
+                $"{fabricOptions.Api.BaseUrl}" +
                 $"/workspaces/{workspaceId}" +
                 $"/lakehouses/{lakehouseId}/tables" +
                 $"?pageSize={pageSize}";
@@ -54,7 +52,6 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
                 ItemsCount = allTables.Count
             };
 
-            // Chỉ tính stats cho các bảng của trang hiện tại (có cache theo từng bảng); không bao giờ throw vì lỗi từng bảng
             var statsByTable = await tableStatsService.GetStatsAsync(
                 connection, workspaceId, lakehouseId, tables, bypassCache, cancellationToken);
 
@@ -99,7 +96,7 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 
             try
             {
-                var operationRequest = fabricOperationMapper.Map(response);   // đọc x-ms-operation-id, Location, Retry-After
+                var operationRequest = fabricOperationMapper.Map(response);
                 operationRequest.OperationType = FabricOperationTypes.LoadTable;
                 operationRequest.ConnectionId = connectionId;
                 operationRequest.WorkspaceId = workspaceId;

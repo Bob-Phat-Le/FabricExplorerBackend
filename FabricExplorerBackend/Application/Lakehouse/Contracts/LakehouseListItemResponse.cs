@@ -1,6 +1,5 @@
 ﻿namespace FabricExplorerBackend.Application.Lakehouse.Contracts
 {
-    /// <summary>Một dòng của dropdown Lakehouse (cùng ý tưởng với WarehouseListItemResponse).</summary>
     public class LakehouseListItemResponse
     {
         public Guid LakehouseId { get; set; }

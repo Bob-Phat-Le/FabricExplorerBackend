@@ -1,14 +1,17 @@
-﻿using System.Text.Json;
+﻿using FabricExplorerBackend.Infrastructures.Options;
+using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace FabricExplorerBackend.Infrastructures.Cache
 {
     public class CachedFetcher(
         ICacheService cacheService,
         ISingleFlight singleFlight,
-        IConfiguration configuration,
+        IOptions<CacheOptions> cacheOptions,
         ILogger<CachedFetcher> logger) : ICachedFetcher
     {
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+        private CacheOptions cacheOptions = cacheOptions.Value;
 
         public string CreateKey(params string[] parts) => cacheService.CreateCacheKey(parts);
 
@@ -26,18 +29,16 @@ namespace FabricExplorerBackend.Infrastructures.Cache
                 if (found) return cached!;
             }
 
-            var timeout = TimeSpan.FromSeconds(configuration.GetValue("Fabric:SharedFetchTimeoutSeconds", 60));
+            var timeout = cacheOptions.SharedFetchTimeout;
 
             return await singleFlight.RunAsync(key, async () =>
             {
-                // Có thể một lần fetch khác vừa ghi cache xong trong lúc ta xếp hàng
                 if (!bypassCache)
                 {
                     var (found, cached) = await TryReadAsync<T>(key);
                     if (found) return cached!;
                 }
 
-                // Fetch dùng chung nên không gắn với token của một request cụ thể; thay bằng timeout để không treo vô hạn
                 using var timeoutSource = new CancellationTokenSource(timeout);
                 T value;
                 try
@@ -56,7 +57,6 @@ namespace FabricExplorerBackend.Infrastructures.Cache
             }, cancellationToken);
         }
 
-        // Redis chỉ là lớp tăng tốc: lỗi cache không được làm hỏng request, chỉ quay về lấy trực tiếp từ Fabric
         private async Task<(bool Found, T? Value)> TryReadAsync<T>(string key)
         {
             try

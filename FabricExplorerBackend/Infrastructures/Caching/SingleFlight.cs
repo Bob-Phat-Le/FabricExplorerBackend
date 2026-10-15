@@ -2,7 +2,6 @@
 
 namespace FabricExplorerBackend.Infrastructures.Cache
 {
-    // Phải đăng ký Singleton: danh sách các lần chạy đang diễn ra phải dùng chung cho mọi request
     public sealed class SingleFlight : ISingleFlight
     {
         private readonly ConcurrentDictionary<string, object> inflight = new();
@@ -10,7 +9,6 @@ namespace FabricExplorerBackend.Infrastructures.Cache
         public Task<T> RunAsync<T>(string key, Func<Task<T>> work, CancellationToken cancellationToken = default)
         {
             Lazy<Task<T>>? created = null;
-            // Lazy đảm bảo work chỉ chạy một lần dù GetOrAdd có gọi factory nhiều lần khi tranh chấp
             created = new Lazy<Task<T>>(() => ExecuteAsync(key, work, created!));
 
             var flight = (Lazy<Task<T>>)inflight.GetOrAdd(key, created);
@@ -25,7 +23,6 @@ namespace FabricExplorerBackend.Infrastructures.Cache
             }
             finally
             {
-                // Chỉ gỡ đúng lần chạy này (không gỡ nhầm lần chạy mới hơn cùng key)
                 inflight.TryRemove(new KeyValuePair<string, object>(key, self));
             }
         }

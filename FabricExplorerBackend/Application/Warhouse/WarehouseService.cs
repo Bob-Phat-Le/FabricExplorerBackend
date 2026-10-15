@@ -3,8 +3,10 @@ using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
+using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Sql;
+using Microsoft.Extensions.Options;
 
 namespace FabricExplorerBackend.Application.Warhouse
 {
@@ -12,10 +14,12 @@ namespace FabricExplorerBackend.Application.Warhouse
         IUnitOfWork unitOfWork,
         IFabricContextFactory fabricContextFactory,
         ISqlQueryService sqlQueryService,
-        IConfiguration configuration,
+        IOptions<CacheOptions> cacheOptions,
         ICachedFetcher cachedFetcher,
         ILogger<WarehouseService> logger) : IWarehouseService
     {
+        private CacheOptions cacheOptions = cacheOptions.Value;
+
         public async Task<Result<WarehouseDetailResponse>> GetWarehouseByIdAsync(Guid connectionId, Guid workspaceId, Guid warehouseId, CancellationToken cancellationToken = default)
         {
             var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
@@ -64,14 +68,13 @@ namespace FabricExplorerBackend.Application.Warhouse
             if (connection == null)
                 return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
 
-            var ttl = TimeSpan.FromSeconds(configuration.GetValue("Fabric:ItemListCacheSeconds", 60));
+            var ttl = cacheOptions.ItemList;
             var key = cachedFetcher.CreateKey("warehouses", connectionId.ToString(), workspaceId.ToString());
 
             var items = await cachedFetcher.GetOrFetchAsync<IReadOnlyList<WarehouseListItemResponse>>(
                 key, ttl,
                 async ct =>
                 {
-                    // Quy tắc của fetch dùng chung: chỉ dùng dữ liệu thuần + context, không dùng UnitOfWork
                     var context = await fabricContextFactory.CreateFabricContextWithoutTokenAsync(connection, ct)
                         ?? throw new InvalidOperationException("can not create context");
 
@@ -123,8 +126,7 @@ namespace FabricExplorerBackend.Application.Warhouse
             if (string.IsNullOrWhiteSpace(sqlHost))
                 return (WarehouseOnlineStatus.Unknown, "Warehouse chưa có connection string (có thể đang được khởi tạo).");
 
-            var timeout = TimeSpan.FromSeconds(configuration.GetValue("Fabric:WarehouseProbeTimeoutSeconds", 10));
-            // Hủy khi request bị hủy HOẶC khi quá thời gian dò
+            var timeout = cacheOptions.WarehouseProbeTimeout;
             using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutSource.CancelAfter(timeout);
 
@@ -153,7 +155,6 @@ namespace FabricExplorerBackend.Application.Warhouse
             //}
             //catch (Exception ex)
             //{
-            //    // Ví dụ không lấy được token SQL: chưa đủ cơ sở để kết luận warehouse offline
             //    logger.LogWarning(ex, "Cannot check online status of warehouse {WarehouseName}.", warehouseName);
             //    return (WarehouseOnlineStatus.Unknown, ex.Message);
             //}

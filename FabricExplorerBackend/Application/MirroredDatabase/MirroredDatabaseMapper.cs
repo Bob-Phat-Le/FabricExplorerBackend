@@ -20,7 +20,6 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
                 WorkspaceName = workspaceName,
                 SourceType = definition?.SourceType,
                 SourceName = definition?.SourceName,
-                // Fabric không cung cấp ngày tạo cho mirrored database --> Fabric UI có cung cấp created date --> cần kiểm tra lại
                 CreatedAt = null,
                 MirroringStatus = mirroringStatus,
                 Status = ToOnlineStatus(mirroringStatus)
@@ -35,13 +34,11 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
             };
         }
 
-        // Status của SDK là extensible enum nên parse theo chuỗi; giá trị lạ -> Unknown thay vì throw
         public MirroringStatus MapStatus(object? fabricStatus)
             => Enum.TryParse<MirroringStatus>(fabricStatus?.ToString(), ignoreCase: true, out var status)
                 ? status
                 : MirroringStatus.Unknown;
 
-        // Active = đang chạy; Starting/Initializing/Stopping/Stopped/Paused/Initialized đều chưa đồng bộ nên coi là Offline
         public MirroredDatabaseOnlineStatus ToOnlineStatus(MirroringStatus status) => status switch
         {
             MirroringStatus.Running => MirroredDatabaseOnlineStatus.Active,

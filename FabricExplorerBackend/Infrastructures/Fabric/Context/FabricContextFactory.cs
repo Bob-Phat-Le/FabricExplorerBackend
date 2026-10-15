@@ -1,13 +1,18 @@
 ﻿using FabricExplorerBackend.Infrastructures.Fabric.Client;
 using FabricExplorerBackend.Infrastructures.Identity;
+using FabricExplorerBackend.Infrastructures.Options;
+using Microsoft.Extensions.Options;
 
 namespace FabricExplorerBackend.Infrastructures.Fabric.Context
 {
     public class FabricContextFactory(
         ITokenService tokenService,
         IClientFactory clientFactory,
+        IOptions<AzureOptions> azureOptions,
         IConfiguration configuration) : IFabricContextFactory
     {
+        private AzureOptions azureOptions = azureOptions.Value;
+
         public async Task<FabricContext> CreateFabricContextWithTokenAsync(Domain.Entities.Connection connection, string accessToken)
         {
             return new FabricContext()
@@ -21,7 +26,7 @@ namespace FabricExplorerBackend.Infrastructures.Fabric.Context
 
         public async Task<FabricContext?> CreateFabricContextWithoutTokenAsync(Domain.Entities.Connection connection, CancellationToken cancellationToken = default)
         {
-            var scope = configuration.GetValue<string>("Scopes:api.fabric");
+            var scope = azureOptions.Scopes.Fabric;
             var token = await tokenService.GetOrCreateTokenAsync(connection, scope!, cancellationToken);
 
             var context = await CreateFabricContextWithTokenAsync(connection, token);

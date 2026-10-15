@@ -13,14 +13,13 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
             if (connection == null)
                 return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
 
-            var ttl = TimeSpan.FromSeconds(configuration.GetValue("Fabric:ItemListCacheSeconds", 60));
+            var ttl = cacheOption.ItemList;
             var key = cachedFetcher.CreateKey("lakehouses", connectionId.ToString(), workspaceId.ToString());
 
             var items = await cachedFetcher.GetOrFetchAsync<IReadOnlyList<LakehouseListItemResponse>>(
                 key, ttl,
                 async ct =>
                 {
-                    // Quy tắc của fetch dùng chung: chỉ dùng dữ liệu thuần + context, không dùng UnitOfWork
                     var context = await fabricContextFactory.CreateFabricContextWithoutTokenAsync(connection, ct)
                         ?? throw new InvalidOperationException("can not create context");
 

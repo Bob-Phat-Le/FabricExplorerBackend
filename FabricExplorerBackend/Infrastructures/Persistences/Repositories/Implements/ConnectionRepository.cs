@@ -14,7 +14,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
 
         public Task<Connection?> CheckDuplicateWorkspaceIdAsync(Guid workspaceId, CancellationToken cancellationToken = default)
         {
-            return context.Connections.OrderBy(c => c.CreatedAt).FirstOrDefaultAsync(c => c.DeletedAt == null && c.WorkspaceId == workspaceId, cancellationToken);
+            return context.Connections.OrderBy(c => c.CreatedAt).ThenBy(c => c.Id).FirstOrDefaultAsync(c => c.DeletedAt == null && c.WorkspaceId == workspaceId, cancellationToken);
         }
 
         public void Delete(Connection entity)
@@ -38,7 +38,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
                 query = query.Skip(skip);
             if (take > 0)
                 query = query.Take(take);
-            var result = await query.OrderBy(c => c.CreatedAt).ToListAsync(cancellationToken);
+            var result = await query.OrderBy(c => c.CreatedAt).ThenBy(c => c.Id).ToListAsync(cancellationToken);
             return (result, count);
         }
 
@@ -47,7 +47,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             var query = context.Connections.AsQueryable().Where(c => c.DeletedAt == null);
             if (!trackChanges)
                 query = query.AsNoTracking();
-            return await query.OrderBy(c => c.CreatedAt).FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+            return await query.OrderBy(c => c.CreatedAt).ThenBy(c => c.Id).FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
         }
 
         public void Update(Connection entity)

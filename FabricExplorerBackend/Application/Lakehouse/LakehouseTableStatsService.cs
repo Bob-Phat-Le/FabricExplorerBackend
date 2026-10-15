@@ -4,21 +4,28 @@ using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
 using FabricExplorerBackend.Infrastructures.Identity;
+using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Sql;
+using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 
 namespace FabricExplorerBackend.Application.Lakehouse
 {
     public sealed class LakehouseTableStatsService(
-        IConfiguration configuration,
+        IOptions<FabricOptions> fabricOptions,
+        IOptions<CacheOptions> cacheOptions,
+        IOptions<OperationPollingOptions> operationPollingOptions,
+        IOptions<AzureOptions> azureOptions,
         IFabricRestClientFactory fabricRestClientFactory,
         ITokenService tokenService,
         ISqlQueryService sqlQueryService,
         ICachedFetcher cachedFetcher) : ILakehouseTableStatsService
     {
         private const string OneLakeUrl = "https://onelake.dfs.fabric.microsoft.com";
-
-        // Mọi thứ cần để đọc stats của các bảng trong một lakehouse (chuẩn bị một lần cho cả trang)
+        private FabricOptions fabricOptions = fabricOptions.Value;
+        private CacheOptions cacheOptions = cacheOptions.Value;
+        private OperationPollingOptions operationPollingOptions = operationPollingOptions.Value;
+        private AzureOptions azureOptions = azureOptions.Value;
         private sealed record StatsSource(DataLakeFileSystemClient FileSystem, SqlEndpoint SqlEndpoint, string Schema);
 
         public async Task<IReadOnlyDictionary<string, TableStats>> GetStatsAsync(
@@ -42,12 +49,9 @@ namespace FabricExplorerBackend.Application.Lakehouse
 
             if (deltaTables.Count == 0) return result;
 
-            // Stats (COUNT(*) qua SQL + đọc _delta_log) là phần tốn kém nhất của trang bảng nên cache theo TỪNG bảng:
-            // mở lại / "Load more" / đổi page size chỉ tính lại những bảng chưa có hoặc đã hết hạn.
-            var ttl = TimeSpan.FromSeconds(configuration.GetValue("Fabric:TableStatsCacheSeconds", 60));
-            var maxParallelism = configuration.GetValue("Fabric:TableStatsMaxParallelism", 4);
+            var ttl = cacheOptions.TableStats;
+            var maxParallelism = operationPollingOptions.TableStatsMaxParallelism;
 
-            // Tra cứu lakehouse + token OneLake: làm đúng MỘT lần cho cả trang, và chỉ khi thật sự có bảng chưa có trong cache
             var source = new Lazy<Task<StatsSource>>(() => PrepareSourceAsync(connection, workspaceId, lakehouseId));
             using var gate = new SemaphoreSlim(maxParallelism);
 
@@ -66,7 +70,6 @@ namespace FabricExplorerBackend.Application.Lakehouse
                             src.FileSystem, connection, lakehouseId, src.SqlEndpoint, src.Schema, name, ct);
                     },
                     bypassCache,
-                    // Kết quả lỗi thường là tạm thời (endpoint đang provision, mạng...) nên không được cache
                     cacheWhen: stats => stats.Status != TableStatus.Error,
                     cancellationToken: cancellationToken);
             }));
@@ -75,7 +78,6 @@ namespace FabricExplorerBackend.Application.Lakehouse
 
         private async Task<StatsSource> PrepareSourceAsync(Domain.Entities.Connection connection, Guid workspaceId, Guid lakehouseId)
         {
-            // Việc chuẩn bị dùng chung cho nhiều bảng nên không gắn với token của request nào
             var lakehouse = await GetLakehouseAsync(connection, workspaceId, lakehouseId, CancellationToken.None);
 
             var sqlHost = lakehouse?.Properties?.SqlEndpointProperties?.ConnectionString;
@@ -86,17 +88,17 @@ namespace FabricExplorerBackend.Application.Lakehouse
             if (!string.IsNullOrEmpty(provisioning) && !provisioning.Equals("Success", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException($"SQL analytics endpoint đang ở trạng thái '{provisioning}'.");
 
-            // Token OneLake lấy ở đây; token SQL do SqlConnectionFactory tự lấy cho từng truy vấn
-            var storageScope = configuration.GetValue("Scopes:storage", "https://storage.azure.com/.default")!;
+            var storageScope = azureOptions.Scopes.Storage;
             var storageToken = await tokenService.GetOrCreateTokenAsync(connection, storageScope);
+            var credential = tokenService.CreateClientSecretCredential(connection.TenantId, connection.ClientId, connection.ClientSecret);
 
-            var fileSystem = new DataLakeServiceClient(new Uri(OneLakeUrl), new StaticTokenCredential(storageToken))
+            var fileSystem = new DataLakeServiceClient(new Uri(OneLakeUrl), credential)
                 .GetFileSystemClient(workspaceId.ToString());
 
             return new StatsSource(
                 fileSystem,
                 new SqlEndpoint(sqlHost, lakehouse.DisplayName),
-                configuration.GetValue("Fabric:DefaultSqlSchema", "dbo")!);
+                fabricOptions.SqlSchemas.Default);
         }
 
         private Task<FabricLakehouseDetailResponse?> GetLakehouseAsync(
@@ -104,7 +106,7 @@ namespace FabricExplorerBackend.Application.Lakehouse
         {
             var client = fabricRestClientFactory.CreateFabricRestClient(connection);
             var url =
-                $"{configuration.GetValue<string>("External:BaseFabricApiUrl")}" +
+                $"{fabricOptions.Api.BaseUrl}" +
                 $"/workspaces/{workspaceId}/lakehouses/{lakehouseId}";
             return client.GetAsync<FabricLakehouseDetailResponse>(url, ct);
         }
@@ -122,7 +124,6 @@ namespace FabricExplorerBackend.Application.Lakehouse
             long? rows = null;
             DateTimeOffset? lastModified = null;
 
-            // Chạy song song 2 nguồn; lỗi nguồn này không làm mất kết quả nguồn kia
             var lastModifiedTask = GetLastCommitTimeAsync(fileSystem, lakehouseId, table, ct);
             var rowsTask = CountRowsAsync(connection, sqlEndpoint, schema, table, ct);
 
@@ -139,8 +140,6 @@ namespace FabricExplorerBackend.Application.Lakehouse
         private static async Task<DateTimeOffset?> GetLastCommitTimeAsync(
             DataLakeFileSystemClient fileSystem, Guid lakehouseId, string table, CancellationToken ct)
         {
-            // OneLake chấp nhận GUID cho cả workspace (file system) lẫn item.
-            // Lakehouse bật schemas: đường dẫn sẽ là Tables/{schema}/{table}.
             var directory = $"{lakehouseId}/Tables/{table}/_delta_log";
             DateTimeOffset? latest = null;
 
@@ -160,8 +159,6 @@ namespace FabricExplorerBackend.Application.Lakehouse
             return latest;
         }
 
-        // Phải là async: SqlIdentifier.Quote có thể ném ArgumentException, và lỗi đó cần nằm trong Task
-        // để được bắt cùng các lỗi khác ở GetTableStatsAsync thay vì ném ra ngay khi gọi hàm
         private async Task<long?> CountRowsAsync(
             Domain.Entities.Connection connection,
             SqlEndpoint sqlEndpoint,
@@ -183,26 +180,25 @@ namespace FabricExplorerBackend.Application.Lakehouse
                 return (TableStatus.Error, string.Join(" | ", errors));
 
             if (rows is null || lastModified is null)
-                return (TableStatus.Unknown, "Thiếu dữ liệu để đánh giá");
+                return (TableStatus.Unknown, "Missing data to evaluate");
 
             if (rows == 0)
                 return (TableStatus.Empty, null);
 
-            var staleAfterDays = configuration.GetValue("Fabric:TableStaleAfterDays", 30);
-            if (DateTimeOffset.UtcNow - lastModified > TimeSpan.FromDays(staleAfterDays))
-                return (TableStatus.Stale, $"Không cập nhật hơn {staleAfterDays} ngày");
+            var staleAfterDays = cacheOptions.TableStale;
+            if (DateTimeOffset.UtcNow - lastModified > staleAfterDays)
+                return (TableStatus.Stale, $"No update more than {staleAfterDays} ngày");
 
             return (TableStatus.Healthy, null);
         }
 
-        // TokenService của dự án trả về chuỗi token, còn DataLakeServiceClient cần TokenCredential
-        private sealed class StaticTokenCredential(string token) : TokenCredential
-        {
-            public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
-                => new(token, DateTimeOffset.UtcNow.AddMinutes(5));
+        //private sealed class StaticTokenCredential(string token) : TokenCredential
+        //{
+        //    public override AccessToken GetToken(TokenRequestContext requestContext, CancellationToken cancellationToken)
+        //        => new(token, DateTimeOffset.UtcNow.AddMinutes(5));
 
-            public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
-                => new(GetToken(requestContext, cancellationToken));
-        }
+        //    public override ValueTask<AccessToken> GetTokenAsync(TokenRequestContext requestContext, CancellationToken cancellationToken)
+        //        => new(GetToken(requestContext, cancellationToken));
+        //}
     }
 }

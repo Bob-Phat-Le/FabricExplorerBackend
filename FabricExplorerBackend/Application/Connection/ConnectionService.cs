@@ -6,14 +6,16 @@ using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Identity;
+using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Security;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
 namespace FabricExplorerBackend.Application.Connection
 {
     public class ConnectionService(
-        IConfiguration configuration,
+        IOptions<AzureOptions> azureOptions,
         ITokenService tokenService,
         ICacheService cacheService,
         IHttpContextAccessor httpContext,
@@ -22,6 +24,8 @@ namespace FabricExplorerBackend.Application.Connection
         IUnitOfWork unitOfWork,
         IConnectionMapper connectionMapper) : IConnectionService
     {
+        private AzureOptions azureOptions = azureOptions.Value;
+
         public async Task<Result<PagedResponse<IEnumerable<ConnectionResponse>>>> GetAllConnectionsAsync(PaginationRequest? paginationRequest, CancellationToken cancellationToken = default)
         {
             if (paginationRequest != null)
@@ -84,7 +88,7 @@ namespace FabricExplorerBackend.Application.Connection
                 await cacheService.SetValueAsync(cacheKey, System.Text.Json.JsonSerializer.Serialize(connection));
                 return Result<ConfirmationResponse>.Success(new ConfirmationResponse { Message = "Connection updated successfully" });
             }
-            throw new 
+            throw new
                 ($"Failed to update connection-{connectionId}");
         }
 
@@ -97,7 +101,7 @@ namespace FabricExplorerBackend.Application.Connection
             string accessToken;
             accessToken = await tokenService.CreateTokenAsync(
                 connection,
-                configuration.GetValue<string>("Scopes:api.fabric", "https://api.fabric.microsoft.com/.default")!,
+                azureOptions.Scopes.Fabric,
                 cancellationToken);
 
             var context = await contextFactory.CreateFabricContextWithTokenAsync(connection, accessToken);

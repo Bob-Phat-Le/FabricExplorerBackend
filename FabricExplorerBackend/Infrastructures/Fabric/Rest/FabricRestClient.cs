@@ -1,17 +1,19 @@
 ﻿using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Infrastructures.Identity;
+using FabricExplorerBackend.Infrastructures.Options;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
 {
     public class FabricRestClient(
         HttpClient httpClient,
-        IConfiguration configuration,
+        IOptions<AzureOptions> azureOptions,
         ITokenService tokenService,
         Domain.Entities.Connection connection) : IFabricRestClient
     {
         private const int MaxBodyChars = 4000;
-        private readonly string scope = configuration.GetValue<string>("Scopes:api.fabric")!;
+        private AzureOptions azureOptions = azureOptions.Value;
 
         public async Task<TResponse?> GetAsync<TResponse>(string endpoint, CancellationToken cancellationToken = default)
         {
@@ -41,7 +43,7 @@ namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
         private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string endpoint, object? body, CancellationToken ct)
         {
             var operation = $"{method} {endpoint}";
-            var token = await tokenService.GetOrCreateTokenAsync(connection, scope, ct);
+            var token = await tokenService.GetOrCreateTokenAsync(connection, azureOptions.Scopes.Fabric, ct);
 
             using var request = new HttpRequestMessage(method, endpoint)
             {
@@ -54,11 +56,11 @@ namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
             {
                 response = await httpClient.SendAsync(request, ct);
             }
-            catch (HttpRequestException ex)   // DNS, TLS, mất kết nối: chưa có response
+            catch (HttpRequestException ex)
             {
                 throw new ExternalServiceException("FabricApi", operation, null, null, null, ex.Message, null, ex);
             }
-            catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)   // timeout của HttpClient, không phải client huỷ
+            catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
             {
                 throw new ExternalServiceException("FabricApi", operation, 504, "Timeout", null, "Request timed out", null, ex);
             }
@@ -85,7 +87,7 @@ namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
                     requestId = root.TryGetProperty("requestId", out var r) ? r.GetString() : null;
                 }
             }
-            catch (JsonException) { /* body không phải JSON: vẫn giữ raw bên dưới */ }
+            catch (JsonException) { }
 
             requestId ??= response.Headers.TryGetValues("RequestId", out var v) ? v.FirstOrDefault() : null;
             var body = raw.Length > MaxBodyChars ? raw[..MaxBodyChars] + "...(truncated)" : raw;

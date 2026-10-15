@@ -10,7 +10,6 @@ namespace FabricExplorerBackend.Api.Controllers
     [ApiController]
     public class WarehousesController(IWarehouseService warehouseService) : ControllerBase
     {
-        // Dropdown: warehouse của workspace. Cache-Control: no-cache để lấy mới (nút Reload)
         [HttpGet]
         public async Task<ActionResult<ApiResponse<IEnumerable<WarehouseListItemResponse>>>> GetAllWarehouses(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
@@ -18,7 +17,6 @@ namespace FabricExplorerBackend.Api.Controllers
             CancellationToken cancellationToken = default)
             => (await warehouseService.GetAllWarehousesAsync(connectionId, workspaceId, Request.ShouldBypassCache(), cancellationToken)).ToActionResult(this);
 
-        // X-Connection-Id nên là connectionId của dòng được chọn trong dropdown
         [HttpGet("{warehouseId:guid}")]
         public async Task<ActionResult<ApiResponse<WarehouseDetailResponse>>> GetWarehouse(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,

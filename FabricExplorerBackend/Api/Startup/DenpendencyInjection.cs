@@ -10,6 +10,7 @@ using FabricExplorerBackend.Infrastructures.Fabric.Client;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
 using FabricExplorerBackend.Infrastructures.Identity;
+using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
@@ -38,7 +39,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<ILakehouseTableStatsService, LakehouseTableStatsService>();
             services.AddScoped<ISqlConnectionFactory, SqlConnectionFactory>();
             services.AddScoped<ISqlQueryService, SqlQueryService>();
-            services.AddSingleton<ISingleFlight, SingleFlight>();   // danh sách lần chạy đang diễn ra phải dùng chung toàn app
+            services.AddSingleton<ISingleFlight, SingleFlight>();
             services.AddScoped<ICachedFetcher, CachedFetcher>();
             services.AddScoped<IWorkspaceService, WorkspaceService>();
             services.AddScoped<IMirroredDatabaseService, MirroredDatabaseService>();
@@ -106,6 +107,20 @@ namespace FabricExplorerBackend.Api.Startup
                           .AllowAnyMethod();
                 });
             });
+
+            return services;
+        }
+
+        public static IServiceCollection AddApplicationOptions(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddOptions<ApiOptions>().BindConfiguration(ApiOptions.SectionName);
+            services.AddOptions<AuthenticationOptions>().BindConfiguration(AuthenticationOptions.SectionName);
+            services.AddOptions<AzureOptions>().BindConfiguration(AzureOptions.SectionName);
+            services.AddOptions<CacheOptions>().BindConfiguration(CacheOptions.SectionName);
+            services.AddOptions<ConnectionStringsOptions>().BindConfiguration(ConnectionStringsOptions.SectionName);
+            services.AddOptions<EntraOptions>().BindConfiguration(EntraOptions.SectionName);
+            services.AddOptions<FabricOptions>().BindConfiguration(FabricOptions.SectionName);
+            services.AddOptions<OperationPollingOptions>().BindConfiguration(OperationPollingOptions.SectionName);
 
             return services;
         }

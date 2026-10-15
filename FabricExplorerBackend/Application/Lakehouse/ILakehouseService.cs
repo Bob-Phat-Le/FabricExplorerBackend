@@ -2,7 +2,6 @@
 using FabricExplorerBackend.Application.Operation.Contracts;
 using FabricExplorerBackend.Commons.Paginations;
 using FabricExplorerBackend.Commons.Results;
-using Microsoft.Fabric.Api.Lakehouse.Models;
 
 namespace FabricExplorerBackend.Application.Lakehouse
 {

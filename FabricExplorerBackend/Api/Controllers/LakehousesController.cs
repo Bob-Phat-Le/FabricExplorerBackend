@@ -5,7 +5,6 @@ using FabricExplorerBackend.Application.Lakehouse.Contracts;
 using FabricExplorerBackend.Application.Operation.Contracts;
 using FabricExplorerBackend.Commons.Paginations;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Fabric.Api.Lakehouse.Models;
 
 namespace FabricExplorerBackend.Api.Controllers
 {
@@ -29,7 +28,6 @@ namespace FabricExplorerBackend.Api.Controllers
             CancellationToken cancellationToken)
             => (await lakehouseService.GetAllTablesAsync(
                 connectionId, workspaceId, lakehouseId, paginationRequest, Request.ShouldBypassCache(), cancellationToken)).ToActionResult(this);
-        // workspaceId lấy từ route và được truyền xuống: lakehouse ở workspace nào cũng đọc đúng workspace đó
 
         [HttpPost("{lakehouseId}/tables/{tableName}/load")]
         public async Task<ActionResult<ApiResponse<OperationAcceptedResponse>>> LoadTable(
@@ -48,11 +46,9 @@ namespace FabricExplorerBackend.Api.Controllers
 
             var data = result.Data!;
 
-            // Không có OperationId: Fabric xong ngay, hoặc đã nhận nhưng không theo dõi được. Trả 200.
             if (data.OperationId is not { } operationId)
                 return Ok(new ApiResponse<OperationAcceptedResponse> { StatusCode = 200, Data = data });
 
-            // 202 Accepted: Fabric đã nhận việc, kết quả cuối cùng chưa có. Location trỏ tới endpoint theo dõi.
             Response.Headers.Location = Url.RouteUrl("GetOperation", new { operationId });
             return StatusCode(StatusCodes.Status202Accepted,
                 new ApiResponse<OperationAcceptedResponse> { StatusCode = 202, Data = data });

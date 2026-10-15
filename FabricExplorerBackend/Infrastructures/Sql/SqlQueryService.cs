@@ -65,7 +65,6 @@ namespace FabricExplorerBackend.Infrastructures.Sql
             if (scalar is null or DBNull)
                 return default;
 
-            // Hỗ trợ cả kiểu nullable, ví dụ ExecuteScalarAsync<long?>
             var targetType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
             return (T)Convert.ChangeType(scalar, targetType, CultureInfo.InvariantCulture);
         }

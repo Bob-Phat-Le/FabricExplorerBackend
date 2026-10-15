@@ -12,7 +12,7 @@ namespace FabricExplorerBackend.Api.Extensions
 
             var e = result.Errors[0];
             var status = e.Kind.ToStatusCode();
-            c.HttpContext.Items[HttpContextKeys.ErrorCode] = e.Code;   // để request log hiện ErrorCode
+            c.HttpContext.Items[HttpContextKeys.ErrorCode] = e.Code;
             return c.StatusCode(status, ApiResponse<T>.Fail(status, new ApiError(e.Code, e.Message, c.HttpContext.TraceIdentifier)));
         }
     }
