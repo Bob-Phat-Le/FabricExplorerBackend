@@ -19,7 +19,7 @@ namespace FabricExplorerBackend.Infrastructures.Identity
             => new ClientSecretCredential(
                 tenantId.ToString(),
                 clientId.ToString(),
-                clientSecret
+                secretProtector.Unprotect(clientSecret)
             );
 
         public Task<string> CreateTokenAsync(Domain.Entities.Connection connection, string scope, CancellationToken cancellationToken = default)
@@ -54,7 +54,7 @@ namespace FabricExplorerBackend.Infrastructures.Identity
             var credential = CreateClientSecretCredential(
                 connection.TenantId,
                 connection.ClientId,
-                secretProtector.Unprotect(connection.ClientSecret)
+                connection.ClientSecret
             );
 
             var key = cacheService.CreateCacheKey(connection.TenantId.ToString(), connection.ClientId.ToString(), scope);
