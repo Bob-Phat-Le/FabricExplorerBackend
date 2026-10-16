@@ -2,6 +2,9 @@ using FabricExplorerBackend.Api.Extensions;
 using FabricExplorerBackend.Api.Startup;
 using FabricExplorerBackend.Api.TestAuthenticationHandler;
 using Microsoft.AspNetCore.Authentication;
+using Npgsql;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +37,16 @@ builder.Services.AddHttpClient();
 
 builder.Services.AddStartupDependencyInjection(builder.Configuration);
 builder.Services.AddGlobalExceptionHandler();
+
+// Temporary added to check request-response timing
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService("FabricExplorerBackend"))
+    .WithTracing(t => t
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddNpgsql()
+        .AddRedisInstrumentation()
+        .AddOtlpExporter(o => o.Endpoint = new Uri("http://jaeger:4317")));
 
 var app = builder.Build();
 await app.MigrateDatabaseAsync();

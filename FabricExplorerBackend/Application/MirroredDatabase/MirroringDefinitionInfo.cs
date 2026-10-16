@@ -23,12 +23,14 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
                 if (properties.TryGetProperty("source", out var source))
                 {
                     sourceType = GetString(source, "type");
-                    if (source.TryGetProperty("typeProperties", out var sourceProps))
+                    if (source.TryGetProperty("typeProperties", out var sourceProps) && sourceProps.ValueKind == JsonValueKind.Object)
                         sourceName = GetString(sourceProps, "database") ?? GetString(sourceProps, "dbName");
                 }
 
                 if (properties.TryGetProperty("target", out var target)
-                    && target.TryGetProperty("typeProperties", out var targetProps))
+                    && target.ValueKind == JsonValueKind.Object
+                    && target.TryGetProperty("typeProperties", out var targetProps)
+                    && targetProps.ValueKind == JsonValueKind.Object)
                     defaultSchema = GetString(targetProps, "defaultSchema");
 
                 return new MirroringDefinitionInfo(sourceType, sourceName ?? sourceType, defaultSchema);
@@ -40,8 +42,10 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
         }
 
         private static string? GetString(JsonElement element, string name)
-            => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
-                ? value.GetString()
-                : null;
+            => element.ValueKind == JsonValueKind.Object
+                && element.TryGetProperty(name, out var value)
+                && value.ValueKind == JsonValueKind.String
+                    ? value.GetString()
+                    : null;
     }
 }

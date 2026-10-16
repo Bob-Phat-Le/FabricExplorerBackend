@@ -2,6 +2,10 @@
 {
     public static class ErrorCodes
     {
+        public static class Context
+        {
+            public const string BadRequest = "context.bad_request";
+        }
         public static class User
         {
             public const string NotFound = "user.not_found";

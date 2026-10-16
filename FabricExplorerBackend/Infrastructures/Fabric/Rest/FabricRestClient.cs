@@ -23,13 +23,13 @@ namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
 
         public async Task<TResponse?> PostAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         {
-            using var response = await SendAsync(HttpMethod.Post, endpoint, null, cancellationToken);
+            using var response = await SendAsync(HttpMethod.Post, endpoint, request, cancellationToken);
             return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
         }
 
         public async Task<TResponse?> PatchAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         {
-            using var response = await SendAsync(HttpMethod.Patch, endpoint, null, cancellationToken);
+            using var response = await SendAsync(HttpMethod.Patch, endpoint, request, cancellationToken);
             return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
         }
 
