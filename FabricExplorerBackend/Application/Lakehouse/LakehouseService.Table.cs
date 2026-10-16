@@ -6,6 +6,7 @@ using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Paginations;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
+using System.Diagnostics;
 
 namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 {

@@ -51,7 +51,16 @@ namespace FabricExplorerBackend.Infrastructures.Cache
                 }
 
                 if (value is not null && (cacheWhen?.Invoke(value) ?? true))
-                    await TryWriteAsync(key, value, ttl);
+                {
+                    try
+                    {
+                        await cacheService.SetValueAsync(key, JsonSerializer.Serialize(value, JsonOptions), ttl);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Cannot write cache entry {CacheKey}.", key);
+                    }
+                }
 
                 return value;
             }, cancellationToken);
@@ -74,16 +83,16 @@ namespace FabricExplorerBackend.Infrastructures.Cache
             }
         }
 
-        private async Task TryWriteAsync<T>(string key, T value, TimeSpan ttl)
-        {
-            try
-            {
-                await cacheService.SetValueAsync(key, JsonSerializer.Serialize(value, JsonOptions), ttl);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Cannot write cache entry {CacheKey}.", key);
-            }
-        }
+        //private async Task TryWriteAsync<T>(string key, T value, TimeSpan ttl)
+        //{
+        //    try
+        //    {
+        //        await cacheService.SetValueAsync(key, JsonSerializer.Serialize(value, JsonOptions), ttl);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        logger.LogWarning(ex, "Cannot write cache entry {CacheKey}.", key);
+        //    }
+        //}
     }
 }

@@ -7,7 +7,9 @@ using FabricExplorerBackend.Infrastructures.Identity;
 using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Sql;
 using Microsoft.Extensions.Options;
+using Serilog.Core;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace FabricExplorerBackend.Application.Lakehouse
 {
@@ -19,6 +21,7 @@ namespace FabricExplorerBackend.Application.Lakehouse
         IFabricRestClientFactory fabricRestClientFactory,
         ITokenService tokenService,
         ISqlQueryService sqlQueryService,
+        ILogger<LakehouseTableStatsService> logger,
         ICachedFetcher cachedFetcher) : ILakehouseTableStatsService
     {
         private const string OneLakeUrl = "https://onelake.dfs.fabric.microsoft.com";
@@ -44,7 +47,7 @@ namespace FabricExplorerBackend.Application.Lakehouse
                 if (string.Equals(table.Format, "delta", StringComparison.OrdinalIgnoreCase))
                     deltaTables.Add(table.Name);
                 else
-                    result[table.Name] = new TableStats(null, null, TableStatus.Unknown, "Không phải bảng Delta");
+                    result[table.Name] = new TableStats(null, null, TableStatus.Unknown, "Not delta table");
             }
 
             if (deltaTables.Count == 0) return result;
@@ -58,20 +61,28 @@ namespace FabricExplorerBackend.Application.Lakehouse
             await Task.WhenAll(deltaTables.Select(async name =>
             {
                 await gate.WaitAsync(cancellationToken);
-                var key = cachedFetcher.CreateKey(
-                    "table-stats", connection.Id.ToString(), workspaceId.ToString(), lakehouseId.ToString(), name);
 
-                result[name] = await cachedFetcher.GetOrFetchAsync(
-                    key, ttl,
-                    async ct =>
-                    {
-                        var src = await source.Value;
-                        return await GetTableStatsAsync(
-                            src.FileSystem, connection, lakehouseId, src.SqlEndpoint, src.Schema, name, ct);
-                    },
-                    bypassCache,
-                    cacheWhen: stats => stats.Status != TableStatus.Error,
-                    cancellationToken: cancellationToken);
+                try
+                {
+                    var key = cachedFetcher.CreateKey(
+                        "table-stats", connection.Id.ToString(), workspaceId.ToString(), lakehouseId.ToString(), name);
+
+                    result[name] = await cachedFetcher.GetOrFetchAsync(
+                        key, ttl,
+                        async ct =>
+                        {
+                            var src = await source.Value;
+                            return await GetTableStatsAsync(
+                                src.FileSystem, connection, lakehouseId, src.SqlEndpoint, src.Schema, name, ct);
+                        },
+                        bypassCache,
+                        cacheWhen: stats => stats.Status != TableStatus.Error,
+                        cancellationToken: cancellationToken);
+                }
+                finally
+                {
+                    gate.Release();
+                }
             }));
             return result;
         }
@@ -82,11 +93,11 @@ namespace FabricExplorerBackend.Application.Lakehouse
 
             var sqlHost = lakehouse?.Properties?.SqlEndpointProperties?.ConnectionString;
             if (lakehouse == null || string.IsNullOrWhiteSpace(sqlHost))
-                throw new InvalidOperationException("SQL analytics endpoint chưa sẵn sàng.");
+                throw new InvalidOperationException("SQL analytics endpoint not ready");
 
             var provisioning = lakehouse.Properties?.SqlEndpointProperties?.ProvisioningStatus;
             if (!string.IsNullOrEmpty(provisioning) && !provisioning.Equals("Success", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException($"SQL analytics endpoint đang ở trạng thái '{provisioning}'.");
+                throw new InvalidOperationException($"SQL analytics endpoint is at state '{provisioning}'.");
 
             var storageScope = azureOptions.Scopes.Storage;
             var storageToken = await tokenService.GetOrCreateTokenAsync(connection, storageScope);
@@ -166,11 +177,13 @@ namespace FabricExplorerBackend.Application.Lakehouse
             string table,
             CancellationToken ct)
         {
-            return await sqlQueryService.ExecuteScalarAsync<long?>(
+            var result = await sqlQueryService.ExecuteScalarAsync<long?>(
                 connection,
                 sqlEndpoint,
                 $"SELECT COUNT_BIG(*) FROM {SqlIdentifier.Quote(schema, table)}",
                 cancellationToken: ct);
+
+            return result;
         }
 
         private (TableStatus Status, string? Message) Evaluate(

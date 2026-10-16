@@ -6,13 +6,15 @@ namespace FabricExplorerBackend.Infrastructures.Cache
     {
         private readonly ConcurrentDictionary<string, object> inflight = new();
 
-        public Task<T> RunAsync<T>(string key, Func<Task<T>> work, CancellationToken cancellationToken = default)
+        public async Task<T> RunAsync<T>(string key, Func<Task<T>> work, CancellationToken cancellationToken = default)
         {
             Lazy<Task<T>>? created = null;
             created = new Lazy<Task<T>>(() => ExecuteAsync(key, work, created!));
 
             var flight = (Lazy<Task<T>>)inflight.GetOrAdd(key, created);
-            return flight.Value.WaitAsync(cancellationToken);
+            var task = flight.Value;
+            var result = await task;
+            return result;
         }
 
         private async Task<T> ExecuteAsync<T>(string key, Func<Task<T>> work, Lazy<Task<T>> self)
