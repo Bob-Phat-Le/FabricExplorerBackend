@@ -3,6 +3,7 @@
     <Project Path="src/FabricExplorerBackend/FabricExplorerBackend.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/FabricExplorerBackend.IntegrationTests/FabricExplorerBackend.IntegrationTests.csproj" Id="ae476c5b-93a1-4e47-a812-a90487c014c0" />
     <Project Path="tests/FabricExplorerBackend.UnitTests/FabricExplorerBackend.UnitTests.csproj" Id="de0ebaeb-9718-4d0e-8a45-679f0d9663c9" />
   </Folder>
   <Project Path="docker-compose.dcproj">

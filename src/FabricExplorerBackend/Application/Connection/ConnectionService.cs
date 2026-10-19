@@ -88,7 +88,7 @@ namespace FabricExplorerBackend.Application.Connection
                 await cacheService.SetValueAsync(cacheKey, System.Text.Json.JsonSerializer.Serialize(connection));
                 return Result<ConfirmationResponse>.Success(new ConfirmationResponse { Message = "Connection updated successfully" });
             }
-            throw new
+            throw new InvalidOperationException
                 ($"Failed to update connection-{connectionId}");
         }
 
