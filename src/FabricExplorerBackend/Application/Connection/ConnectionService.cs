@@ -193,7 +193,7 @@ namespace FabricExplorerBackend.Application.Connection
 
         public async Task<Result<ConfirmationResponse>> TestConnection(TestConnectionRequest request, CancellationToken cancellationToken = default)
         {
-            var credential = tokenService.CreateClientSecretCredential(request.TenantId, request.ClientId, request.ClientSecret);
+            var credential = tokenService.CreateClientSecretCredential(request.TenantId, request.ClientId, request.ClientSecret, false);
             var client = clientFactory.CreateClientAsync(credential);
 
             var workspace = (await client.Core.Workspaces.GetWorkspaceAsync(request.WorkspaceId, cancellationToken: cancellationToken)).Value;

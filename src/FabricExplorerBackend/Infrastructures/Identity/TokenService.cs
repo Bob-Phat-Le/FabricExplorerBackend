@@ -15,12 +15,17 @@ namespace FabricExplorerBackend.Infrastructures.Identity
     {
         private AuthenticationOptions authenOptions = authenOptions.Value;
 
-        public ClientSecretCredential CreateClientSecretCredential(Guid tenantId, Guid clientId, string clientSecret)
-            => new ClientSecretCredential(
+        public ClientSecretCredential CreateClientSecretCredential(Guid tenantId, Guid clientId, string clientSecret, bool isProtected = true)
+            => isProtected ? 
+            new ClientSecretCredential(
                 tenantId.ToString(),
                 clientId.ToString(),
                 secretProtector.Unprotect(clientSecret)
-            );
+            ) : 
+            new ClientSecretCredential(
+                tenantId.ToString(),
+                clientId.ToString(),
+                clientSecret);
 
         public Task<string> CreateTokenAsync(Domain.Entities.Connection connection, string scope, CancellationToken cancellationToken = default)
             => RequestAndCacheTokenAsync(connection, scope, cancellationToken);
