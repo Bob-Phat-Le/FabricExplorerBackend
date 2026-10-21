@@ -30,7 +30,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
 
         public async Task<(List<Connection>, int)> GetAllAsync(int skip, int take, bool trackChanges = false, CancellationToken cancellationToken = default)
         {
-            var query = context.Connections.AsQueryable().Where(c => c.DeletedAt == null);
+            var query = context.Connections.Where(c => c.DeletedAt == null).OrderBy(c => c.CreatedAt).ThenBy(c => c.Id).AsQueryable();
             var count = await query.CountAsync(cancellationToken);
             if (!trackChanges)
                 query = query.AsNoTracking();
