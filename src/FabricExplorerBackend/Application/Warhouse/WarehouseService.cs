@@ -7,7 +7,6 @@ using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Sql;
 using Microsoft.Extensions.Options;
-using System.Diagnostics;
 
 namespace FabricExplorerBackend.Application.Warhouse
 {

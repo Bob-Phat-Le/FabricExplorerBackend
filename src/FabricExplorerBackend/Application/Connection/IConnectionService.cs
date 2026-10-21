@@ -14,6 +14,7 @@ namespace FabricExplorerBackend.Application.Connection
         Task<Result<ConfirmationResponse>> UpdateConnection(Guid connectionId, UpdateConnectionRequest request, CancellationToken cancellationToken = default);
         Task<Result<ConfirmationResponse>> DeleteConnection(Guid connectionId, CancellationToken cancellationToken = default);
         Task<Result<ConfirmationResponse>> TestConnection(Guid connectionId, CancellationToken cancellationToken = default);
+        Task<Result<ConfirmationResponse>> TestConnection(TestConnectionRequest request, CancellationToken cancellationToken = default);
         Task<Result<ConfirmationResponse>> ActiveConnection(Guid targetConnectionId, CancellationToken cancellationToken = default);
     }
 }

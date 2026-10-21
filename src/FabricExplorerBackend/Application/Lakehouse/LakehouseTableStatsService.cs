@@ -1,5 +1,4 @@
-﻿using Azure.Core;
-using Azure.Storage.Files.DataLake;
+﻿using Azure.Storage.Files.DataLake;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
@@ -7,9 +6,7 @@ using FabricExplorerBackend.Infrastructures.Identity;
 using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Sql;
 using Microsoft.Extensions.Options;
-using Serilog.Core;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 
 namespace FabricExplorerBackend.Application.Lakehouse
 {

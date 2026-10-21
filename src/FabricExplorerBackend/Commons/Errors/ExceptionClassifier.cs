@@ -44,9 +44,9 @@ namespace FabricExplorerBackend.Commons.Errors
                 401 or 403 => new(403, ErrorCodes.Fabric.Forbidden, "Connection is not allowed to access", LogLevel.Warning, false, details),
                 429 => new(429, ErrorCodes.Fabric.RateLimited, "Reached rate limit, retry later", LogLevel.Warning, false, details),
                 400 or 409 => new(
-                    status.Value, 
-                    ErrorCodes.Fabric.RequestFailed, 
-                    message.Split($"{code}").LastOrDefault() ?? message, 
+                    status.Value,
+                    ErrorCodes.Fabric.RequestFailed,
+                    message.Split($"{code}").LastOrDefault() ?? message,
                     LogLevel.Warning, false, details),
                 504 => new(504, ErrorCodes.Upstream.Timeout, "Fabric response reached timeout", LogLevel.Warning, false, details),
                 _ => new(502, ErrorCodes.Fabric.Unavailable, "Fabric response with failed", LogLevel.Error, true, details)
