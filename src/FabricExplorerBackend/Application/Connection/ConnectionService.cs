@@ -4,6 +4,7 @@ using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Paginations;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Cache;
+using FabricExplorerBackend.Infrastructures.Fabric.Client;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Identity;
 using FabricExplorerBackend.Infrastructures.Options;
@@ -19,6 +20,7 @@ namespace FabricExplorerBackend.Application.Connection
         ITokenService tokenService,
         ICacheService cacheService,
         IHttpContextAccessor httpContext,
+        IClientFactory clientFactory,
         IFabricContextFactory contextFactory,
         ISecretProtector secretProtector,
         IUnitOfWork unitOfWork,
@@ -187,6 +189,22 @@ namespace FabricExplorerBackend.Application.Connection
                 return Error.NotFound(ErrorCodes.User.NotFound, "User not found");
 
             return Result<ConnectionResponse>.Success(connectionMapper.Map(user.ActiveConnection));
+        }
+
+        public async Task<Result<ConfirmationResponse>> TestConnection(TestConnectionRequest request, CancellationToken cancellationToken = default)
+        {
+            var credential = tokenService.CreateClientSecretCredential(request.TenantId, request.ClientId, request.ClientSecret);
+            var client = clientFactory.CreateClientAsync(credential);
+
+            var workspace = (await client.Core.Workspaces.GetWorkspaceAsync(request.WorkspaceId, cancellationToken: cancellationToken)).Value;
+
+            if (workspace == null || workspace.Id != request.WorkspaceId)
+                return Error.NotFound(ErrorCodes.Fabric.NotFound, "Workspace not found");
+
+            return Result<ConfirmationResponse>.Success(new ConfirmationResponse
+            {
+                Message = $"Connection check succeeded. Workspace: {workspace.DisplayName} ({workspace.Id})"
+            });
         }
     }
 }

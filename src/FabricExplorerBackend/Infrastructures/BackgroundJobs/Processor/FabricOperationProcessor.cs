@@ -2,7 +2,6 @@
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Domain.Entities;
 using FabricExplorerBackend.Domain.Enums;
-using FabricExplorerBackend.Infrastructures.BackgroundJobs;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;

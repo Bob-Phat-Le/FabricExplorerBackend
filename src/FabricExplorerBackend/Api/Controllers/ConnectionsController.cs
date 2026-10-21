@@ -41,8 +41,12 @@ namespace FabricExplorerBackend.Api.Controllers
             => (await connectionService.CreateConnectionAsync(request)).ToActionResult(this);
 
         [HttpPost("{connectionId}/test")]
-        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> TestConnection(Guid connectionId, CancellationToken cancellationToken = default)
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> TestSavedConnection(Guid connectionId, CancellationToken cancellationToken = default)
             => (await connectionService.TestConnection(connectionId)).ToActionResult(this);
+
+        [HttpPost("test")]
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> TestUnsavedConnection([FromBody] TestConnectionRequest request, CancellationToken cancellationToken = default)
+            => (await connectionService.TestConnection(request)).ToActionResult(this);
 
         [HttpPost("{connectionId}/active")]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId, CancellationToken cancellationToken = default)

@@ -3,7 +3,7 @@ services:
     image: ${DOCKER_REGISTRY-}fabricexplorerbackend
     build:
       context: .
-      dockerfile: FabricExplorerBackend/Dockerfile
+      dockerfile: src/FabricExplorerBackend/Dockerfile
     container_name: fabric_explorer_backend
     ports:
       - "8080:8080"
