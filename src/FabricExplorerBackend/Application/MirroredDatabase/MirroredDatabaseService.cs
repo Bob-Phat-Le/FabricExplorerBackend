@@ -1,7 +1,9 @@
 ﻿using Azure;
+using FabricExplorerBackend.Application.EventStreaming;
 using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
 using FabricExplorerBackend.Application.Operation;
 using FabricExplorerBackend.Commons.Errors;
+using FabricExplorerBackend.Commons.EventStreaming;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
@@ -19,6 +21,7 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
         IFabricRestClientFactory fabricRestClientFactory,
         IFabricOperationMapper fabricOperationMapper,
         IFabricOperationService fabricOperationService,
+        IEventStreamService eventStreamService,
         ICachedFetcher cachedFetcher,
         IOptions<CacheOptions> cacheOptions,
         IOptions<FabricOptions> fabricOptions,
@@ -75,7 +78,7 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
             return Result<IEnumerable<MirroredDatabaseListItemResponse>>.Success(items);
         }
 
-        public async Task<Result<MirroredDatabaseDetailResponse>> GetMirroredDatabaseByIdAsync(
+        public async Task<Result<EventStreamingAdapter<MirroredDatabaseDetailResponse>>> GetMirroredDatabaseByIdAsync(
             Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken = default)
         {
             var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
@@ -86,22 +89,85 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
 
             var databaseTask = context.Client.MirroredDatabase.Items.GetMirroredDatabaseAsync(workspaceId, mirroredDatabaseId, cancellationToken: cancellationToken);
             var workspaceTask = context.Client.Core.Workspaces.GetWorkspaceAsync(workspaceId, cancellationToken: cancellationToken);
-            var statusTask = GetMirroringStatusValueAsync(context, workspaceId, mirroredDatabaseId, cancellationToken);
-            var definitionTask = GetDefinitionInfoAsync(context, workspaceId, mirroredDatabaseId, cancellationToken);
+            var cachedDefinitionTask = cachedFetcher.TryGetAsync<MirroringDefinitionInfo?>(DefinitionCacheKey(workspaceId, mirroredDatabaseId));
 
-            await Task.WhenAll(databaseTask, workspaceTask, statusTask, definitionTask);
+            await Task.WhenAll(databaseTask, workspaceTask, cachedDefinitionTask);
+
+            var (definitionCached, cachedDefinition) = await cachedDefinitionTask;
 
             var response = mapper.Map(
                 (await databaseTask).Value,
                 workspaceId,
                 (await workspaceTask).Value.DisplayName,
-                await statusTask,
-                await definitionTask);
+                MirroringStatus.Checking,
+                cachedDefinition);
 
-            return Result<MirroredDatabaseDetailResponse>.Success(response);
+            List<string> pendingFields =
+            [
+                nameof(MirroredDatabaseDetailResponse.MirroringStatus),
+                nameof(MirroredDatabaseDetailResponse.Status)
+            ];
+
+            if (!definitionCached)
+            {
+                response.SourceType = StreamingPlaceholders.Checking;
+                response.SourceName = StreamingPlaceholders.Checking;
+                pendingFields.Add(nameof(MirroredDatabaseDetailResponse.SourceType));
+                pendingFields.Add(nameof(MirroredDatabaseDetailResponse.SourceName));
+            }
+
+            var includeDefinition = !definitionCached;
+            var adapter = eventStreamService.Stream(
+                response,
+                pendingFields,
+                work: ctx => ctx.Services.GetRequiredService<IMirroredDatabaseService>()
+                    .StreamDetailAsync(connection, workspaceId, mirroredDatabaseId, includeDefinition, ctx));
+
+            return Result<EventStreamingAdapter<MirroredDatabaseDetailResponse>>.Success(adapter);
         }
 
-        public async Task<Result<MirroringDatabaseStatusResponse>> GetMirroringStatusAsync(
+        public async Task StreamDetailAsync(
+            Domain.Entities.Connection connection, Guid workspaceId, Guid mirroredDatabaseId, bool includeDefinition, EventStreamContext stream)
+        {
+            var cancellationToken = stream.CancellationToken;
+            var context = await CreateContextAsync(connection, cancellationToken);
+
+            await Task.WhenAll(
+                PublishStatusAsync(),
+                includeDefinition ? PublishSourceInfoAsync() : Task.CompletedTask);
+
+            async Task PublishStatusAsync()
+            {
+                MirroringStatus status;
+                try
+                {
+                    status = await GetMirroringStatusValueAsync(context, workspaceId, mirroredDatabaseId, cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Cannot read mirroring status of {MirroredDatabaseId}.", mirroredDatabaseId);
+                    status = MirroringStatus.Unknown;
+                }
+
+                stream.Publish(
+                    MirroredDatabaseStreamEvents.MirroringStatus,
+                    new MirroredDatabaseStatusStreamEvent(status, mapper.ToOnlineStatus(status)));
+            }
+
+            async Task PublishSourceInfoAsync()
+            {
+                var definition = await GetDefinitionInfoAsync(context, workspaceId, mirroredDatabaseId, cancellationToken);
+                stream.Publish(
+                    MirroredDatabaseStreamEvents.SourceInfo,
+                    new MirroredDatabaseSourceInfoStreamEvent(definition?.SourceType, definition?.SourceName));
+            }
+        }
+
+        public async Task<Result<EventStreamingAdapter<MirroringDatabaseStatusResponse>>> GetMirroringStatusAsync(
             Guid connectionId, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken = default)
         {
             var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
@@ -110,21 +176,37 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
 
             var context = await CreateContextAsync(connection, cancellationToken);
 
-            var statusTask = context.Client.MirroredDatabase.Mirroring.GetMirroringStatusAsync(workspaceId, mirroredDatabaseId, cancellationToken: cancellationToken);
-
-            var tablesTask = ListOrEmptyOnRejectedAsync(
-                GetTablesMirroringStatusAsync(connection, workspaceId, mirroredDatabaseId, cancellationToken));
-
-            var mirroringStatus = (await statusTask).Value;
-
-            var tables = await tablesTask;
+            var mirroringStatus = (await context.Client.MirroredDatabase.Mirroring.GetMirroringStatusAsync(
+                workspaceId, mirroredDatabaseId, cancellationToken: cancellationToken)).Value;
 
             var response = mapper.Map(mirroringStatus);
-            response.LastSynchronization = tables.Select(item => item.Metrics?.LastSyncDateTime).Max();
-            response.RecordSynchronized = tables.Sum(item => item.Metrics?.ProcessedRows ?? 0);
-            response.CurrentLatency = tables.Select(item => item.Metrics?.LastSyncLatencyInSeconds).Max();
 
-            return Result<MirroringDatabaseStatusResponse>.Success(response);
+            var adapter = eventStreamService.Stream(
+                response,
+                pendingFields:
+                [
+                    nameof(MirroringDatabaseStatusResponse.LastSynchronization),
+                    nameof(MirroringDatabaseStatusResponse.RecordSynchronized),
+                    nameof(MirroringDatabaseStatusResponse.CurrentLatency)
+                ],
+                work: ctx => ctx.Services.GetRequiredService<IMirroredDatabaseService>()
+                    .StreamMetricsAsync(connection, workspaceId, mirroredDatabaseId, ctx));
+
+            return Result<EventStreamingAdapter<MirroringDatabaseStatusResponse>>.Success(adapter);
+        }
+
+        public async Task StreamMetricsAsync(
+            Domain.Entities.Connection connection, Guid workspaceId, Guid mirroredDatabaseId, EventStreamContext stream)
+        {
+            var tables = await ListOrEmptyOnRejectedAsync(
+                GetTablesMirroringStatusAsync(connection, workspaceId, mirroredDatabaseId, stream.CancellationToken));
+
+            stream.Publish(
+                MirroredDatabaseStreamEvents.MirroringMetrics,
+                new MirroringMetricsStreamEvent(
+                    tables.Select(item => item.Metrics?.LastSyncDateTime).Max(),
+                    tables.Sum(item => item.Metrics?.ProcessedRows ?? 0),
+                    tables.Select(item => item.Metrics?.LastSyncLatencyInSeconds).Max()));
         }
 
         public async Task<Result<IEnumerable<TableMirroringStatusResponse>>> ListTablesMirroringStatusAsync(
@@ -236,11 +318,14 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
             }
         }
 
+        private string DefinitionCacheKey(Guid workspaceId, Guid mirroredDatabaseId)
+            => cachedFetcher.CreateKey("mirrored-db-definition", workspaceId.ToString(), mirroredDatabaseId.ToString());
+
         private async Task<MirroringDefinitionInfo?> GetDefinitionInfoAsync(
             FabricContext context, Guid workspaceId, Guid mirroredDatabaseId, CancellationToken cancellationToken)
         {
             var ttl = cacheOptions.MirroringDefinition;
-            var key = cachedFetcher.CreateKey("mirrored-db-definition", workspaceId.ToString(), mirroredDatabaseId.ToString());
+            var key = DefinitionCacheKey(workspaceId, mirroredDatabaseId);
 
             try
             {

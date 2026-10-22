@@ -1,10 +1,13 @@
 ﻿using FabricExplorerBackend.Application.Connection;
+using FabricExplorerBackend.Application.EventStreaming;
 using FabricExplorerBackend.Application.Lakehouse;
 using FabricExplorerBackend.Application.MirroredDatabase;
 using FabricExplorerBackend.Application.Operation;
 using FabricExplorerBackend.Application.Warhouse;
 using FabricExplorerBackend.Application.Workspace;
+using FabricExplorerBackend.Commons.EventStreaming;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
+using FabricExplorerBackend.Infrastructures.BackgroundJobs;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Client;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
@@ -19,6 +22,7 @@ using FabricExplorerBackend.Infrastructures.Sql;
 using FabricExplorerBackend.Mappers;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using StackExchange.Redis;
 
 namespace FabricExplorerBackend.Api.Startup
@@ -44,6 +48,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<IWorkspaceService, WorkspaceService>();
             services.AddScoped<IMirroredDatabaseService, MirroredDatabaseService>();
             services.AddScoped<IWarehouseService, WarehouseService>();
+            services.AddScoped<IEventStreamService, EventStreamService>();
 
             return services;
         }
@@ -60,6 +65,12 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<IConnectionRepository, ConnectionRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IFabricOperationRepository, FabricOperationRepository>();
+
+            // Event streaming (SSE): registry in-memory shared globally for the whole app so must be singleton
+            services.TryAddSingleton(TimeProvider.System);
+            services.AddSingleton<IEventRegistry, EventRegistry>();
+            services.AddSingleton<IEventPublisher, EventPublisher>();
+            services.AddHostedService<EventStreamCleanupService>();
 
             return services;
         }
@@ -121,6 +132,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddOptions<EntraOptions>().BindConfiguration(EntraOptions.SectionName);
             services.AddOptions<FabricOptions>().BindConfiguration(FabricOptions.SectionName);
             services.AddOptions<OperationPollingOptions>().BindConfiguration(OperationPollingOptions.SectionName);
+            services.AddOptions<EventStreamingOptions>().BindConfiguration(EventStreamingOptions.SectionName);
 
             return services;
         }

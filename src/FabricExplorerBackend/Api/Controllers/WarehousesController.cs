@@ -2,6 +2,7 @@
 using FabricExplorerBackend.Api.Extensions;
 using FabricExplorerBackend.Application.Warhouse;
 using FabricExplorerBackend.Application.Warhouse.Contracts;
+using FabricExplorerBackend.Commons.EventStreaming;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FabricExplorerBackend.Api.Controllers
@@ -18,7 +19,7 @@ namespace FabricExplorerBackend.Api.Controllers
             => (await warehouseService.GetAllWarehousesAsync(connectionId, workspaceId, Request.ShouldBypassCache(), cancellationToken)).ToActionResult(this);
 
         [HttpGet("{warehouseId:guid}")]
-        public async Task<ActionResult<ApiResponse<WarehouseDetailResponse>>> GetWarehouse(
+        public async Task<ActionResult<ApiResponse<EventStreamingAdapter<WarehouseDetailResponse>>>> GetWarehouse(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
             Guid workspaceId,
             Guid warehouseId,

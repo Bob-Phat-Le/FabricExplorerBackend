@@ -1,4 +1,5 @@
-﻿using FabricExplorerBackend.Application.Lakehouse;
+﻿using FabricExplorerBackend.Application.EventStreaming;
+using FabricExplorerBackend.Application.Lakehouse;
 using FabricExplorerBackend.Application.Operation;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
@@ -20,6 +21,7 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
         IFabricOperationService fabricOperationService,
         ILakehouseMapper lakehouseMapper,
         ILakehouseTableStatsService tableStatsService,
+        IEventStreamService eventStreamService,
         ICachedFetcher cachedFetcher) : ILakehouseService
     {
         private FabricOptions fabricOptions = fabricOptions.Value;

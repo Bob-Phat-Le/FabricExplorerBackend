@@ -15,6 +15,8 @@ namespace FabricExplorerBackend.Infrastructures.Cache
 
         public string CreateKey(params string[] parts) => cacheService.CreateCacheKey(parts);
 
+        public Task<(bool Found, T? Value)> TryGetAsync<T>(string key) => TryReadAsync<T>(key);
+
         public async Task<T> GetOrFetchAsync<T>(
             string key,
             TimeSpan ttl,

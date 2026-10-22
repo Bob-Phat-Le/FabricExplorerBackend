@@ -4,6 +4,7 @@
     {
         Online,
         Offline,
-        Unknown
+        Unknown,
+        Checking
     }
 }
