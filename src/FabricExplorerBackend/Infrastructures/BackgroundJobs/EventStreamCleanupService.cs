@@ -4,7 +4,6 @@ using Microsoft.Extensions.Options;
 
 namespace FabricExplorerBackend.Infrastructures.BackgroundJobs
 {
-    /// <summary>Định kỳ gỡ các stream đã hết hạn khỏi registry để không rò bộ nhớ.</summary>
     public sealed class EventStreamCleanupService(
         IEventRegistry registry,
         IOptions<EventStreamingOptions> options,
