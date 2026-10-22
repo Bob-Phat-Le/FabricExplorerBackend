@@ -3,6 +3,7 @@ using FabricExplorerBackend.Api.Extensions;
 using FabricExplorerBackend.Application.Lakehouse;
 using FabricExplorerBackend.Application.Lakehouse.Contracts;
 using FabricExplorerBackend.Application.Operation.Contracts;
+using FabricExplorerBackend.Commons.EventStreaming;
 using FabricExplorerBackend.Commons.Paginations;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +21,7 @@ namespace FabricExplorerBackend.Api.Controllers
             => (await lakehouseService.GetAllLakehousesAsync(connectionId, workspaceId, Request.ShouldBypassCache(), cancellationToken)).ToActionResult(this);
 
         [HttpGet("{lakehouseId}/tables")]
-        public async Task<ActionResult<ApiResponse<PagedResponseWithCursor<IEnumerable<TableResponse>>>>> GetAllTables(
+        public async Task<ActionResult<ApiResponse<EventStreamingAdapter<PagedResponseWithCursor<IEnumerable<TableResponse>>>>>> GetAllTables(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
             Guid workspaceId,
             Guid lakehouseId,

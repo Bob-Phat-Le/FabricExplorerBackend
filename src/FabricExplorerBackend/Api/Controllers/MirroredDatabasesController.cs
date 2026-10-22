@@ -2,6 +2,7 @@
 using FabricExplorerBackend.Api.Extensions;
 using FabricExplorerBackend.Application.MirroredDatabase;
 using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
+using FabricExplorerBackend.Commons.EventStreaming;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FabricExplorerBackend.Api.Controllers
@@ -18,7 +19,7 @@ namespace FabricExplorerBackend.Api.Controllers
             => (await mirroredDatabaseService.ListMirroredDatabasesAsync(connectionId, workspaceId, Request.ShouldBypassCache(), cancellationToken)).ToActionResult(this);
 
         [HttpGet("{mirroredDatabaseId:guid}")]
-        public async Task<ActionResult<ApiResponse<MirroredDatabaseDetailResponse>>> GetMirroredDatabase(
+        public async Task<ActionResult<ApiResponse<EventStreamingAdapter<MirroredDatabaseDetailResponse>>>> GetMirroredDatabase(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
             Guid workspaceId,
             Guid mirroredDatabaseId,
@@ -26,7 +27,7 @@ namespace FabricExplorerBackend.Api.Controllers
             => (await mirroredDatabaseService.GetMirroredDatabaseByIdAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken)).ToActionResult(this);
 
         [HttpGet("{mirroredDatabaseId:guid}/status")]
-        public async Task<ActionResult<ApiResponse<MirroringDatabaseStatusResponse>>> GetMirroringStatus(
+        public async Task<ActionResult<ApiResponse<EventStreamingAdapter<MirroringDatabaseStatusResponse>>>> GetMirroringStatus(
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
             Guid workspaceId,
             Guid mirroredDatabaseId,

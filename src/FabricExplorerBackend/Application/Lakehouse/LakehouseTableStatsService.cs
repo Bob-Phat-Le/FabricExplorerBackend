@@ -1,4 +1,5 @@
 ﻿using Azure.Storage.Files.DataLake;
+using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
@@ -49,7 +50,6 @@ namespace FabricExplorerBackend.Application.Lakehouse
 
             if (deltaTables.Count == 0) return result;
 
-            var ttl = cacheOptions.TableStats;
             var maxParallelism = operationPollingOptions.TableStatsMaxParallelism;
 
             var source = new Lazy<Task<StatsSource>>(() => PrepareSourceAsync(connection, workspaceId, lakehouseId));
@@ -61,20 +61,8 @@ namespace FabricExplorerBackend.Application.Lakehouse
 
                 try
                 {
-                    var key = cachedFetcher.CreateKey(
-                        "table-stats", connection.Id.ToString(), workspaceId.ToString(), lakehouseId.ToString(), name);
-
-                    result[name] = await cachedFetcher.GetOrFetchAsync(
-                        key, ttl,
-                        async ct =>
-                        {
-                            var src = await source.Value;
-                            return await GetTableStatsAsync(
-                                src.FileSystem, connection, lakehouseId, src.SqlEndpoint, src.Schema, name, ct);
-                        },
-                        bypassCache,
-                        cacheWhen: stats => stats.Status != TableStatus.Error,
-                        cancellationToken: cancellationToken);
+                    result[name] = await GetOrFetchStatsAsync(
+                        source, connection, workspaceId, lakehouseId, name, bypassCache, cancellationToken);
                 }
                 finally
                 {
@@ -83,6 +71,117 @@ namespace FabricExplorerBackend.Application.Lakehouse
             }));
             return result;
         }
+
+        public async Task<TableStatsSnapshot> GetCachedStatsAsync(
+            Domain.Entities.Connection connection,
+            Guid workspaceId,
+            Guid lakehouseId,
+            IEnumerable<FabricTableResponse> tables,
+            bool bypassCache = false,
+            CancellationToken cancellationToken = default)
+        {
+            var ready = new Dictionary<string, TableStats>(StringComparer.OrdinalIgnoreCase);
+            var deltaTables = new List<string>();
+
+            foreach (var table in tables)
+            {
+                if (string.Equals(table.Format, "delta", StringComparison.OrdinalIgnoreCase))
+                    deltaTables.Add(table.Name);
+                else
+                    ready[table.Name] = new TableStats(null, null, TableStatus.Unknown, "Not delta table");
+            }
+
+            if (bypassCache || deltaTables.Count == 0)
+                return new TableStatsSnapshot(ready, deltaTables);
+
+            var lookups = await Task.WhenAll(deltaTables.Select(async name =>
+            {
+                var (found, stats) = await cachedFetcher.TryGetAsync<TableStats>(
+                    StatsCacheKey(connection, workspaceId, lakehouseId, name));
+                return (Name: name, Found: found, Stats: stats);
+            }));
+
+            var pending = new List<string>();
+            foreach (var lookup in lookups)
+            {
+                if (lookup.Found && lookup.Stats is not null)
+                    ready[lookup.Name] = lookup.Stats;
+                else
+                    pending.Add(lookup.Name);
+            }
+
+            return new TableStatsSnapshot(ready, pending);
+        }
+
+        public async Task ComputeStatsAsync(
+            Domain.Entities.Connection connection,
+            Guid workspaceId,
+            Guid lakehouseId,
+            IReadOnlyCollection<string> tableNames,
+            Func<string, TableStats, Task> onCompleted,
+            bool bypassCache = false,
+            CancellationToken cancellationToken = default)
+        {
+            if (tableNames.Count == 0) return;
+
+            var source = new Lazy<Task<StatsSource>>(() => PrepareSourceAsync(connection, workspaceId, lakehouseId));
+            using var gate = new SemaphoreSlim(operationPollingOptions.TableStatsMaxParallelism);
+
+            await Task.WhenAll(tableNames.Select(async name =>
+            {
+                await gate.WaitAsync(cancellationToken);
+
+                try
+                {
+                    TableStats stats;
+                    try
+                    {
+                        stats = await GetOrFetchStatsAsync(
+                            source, connection, workspaceId, lakehouseId, name, bypassCache, cancellationToken);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Cannot compute stats of table {Table} in lakehouse {LakehouseId}", name, lakehouseId);
+                        stats = new TableStats(null, null, TableStatus.Error, ExceptionClassifier.Classify(ex).Message);
+                    }
+
+                    await onCompleted(name, stats);
+                }
+                finally
+                {
+                    gate.Release();
+                }
+            }));
+        }
+
+        private string StatsCacheKey(Domain.Entities.Connection connection, Guid workspaceId, Guid lakehouseId, string table)
+            => cachedFetcher.CreateKey(
+                "table-stats", connection.Id.ToString(), workspaceId.ToString(), lakehouseId.ToString(), table);
+
+        private Task<TableStats> GetOrFetchStatsAsync(
+            Lazy<Task<StatsSource>> source,
+            Domain.Entities.Connection connection,
+            Guid workspaceId,
+            Guid lakehouseId,
+            string table,
+            bool bypassCache,
+            CancellationToken cancellationToken)
+            => cachedFetcher.GetOrFetchAsync(
+                StatsCacheKey(connection, workspaceId, lakehouseId, table),
+                cacheOptions.TableStats,
+                async ct =>
+                {
+                    var src = await source.Value;
+                    return await GetTableStatsAsync(
+                        src.FileSystem, connection, lakehouseId, src.SqlEndpoint, src.Schema, table, ct);
+                },
+                bypassCache,
+                cacheWhen: stats => stats.Status != TableStatus.Error,
+                cancellationToken: cancellationToken);
 
         private async Task<StatsSource> PrepareSourceAsync(Domain.Entities.Connection connection, Guid workspaceId, Guid lakehouseId)
         {

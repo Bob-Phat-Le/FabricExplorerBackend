@@ -3,6 +3,7 @@ using FabricExplorerBackend.Application.Lakehouse.Contracts;
 using FabricExplorerBackend.Application.Operation;
 using FabricExplorerBackend.Application.Operation.Contracts;
 using FabricExplorerBackend.Commons.Errors;
+using FabricExplorerBackend.Commons.EventStreaming;
 using FabricExplorerBackend.Commons.Paginations;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
@@ -11,7 +12,7 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 {
     public partial class LakehouseService
     {
-        public async Task<Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>> GetAllTablesAsync(
+        public async Task<Result<EventStreamingAdapter<PagedResponseWithCursor<IEnumerable<TableResponse>>>>> GetAllTablesAsync(
             Guid connectionId,
             Guid workspaceId,
             Guid lakehouseId,
@@ -52,25 +53,51 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
                 ItemsCount = allTables.Count
             };
 
-            var statsByTable = await tableStatsService.GetStatsAsync(
+            var snapshot = await tableStatsService.GetCachedStatsAsync(
                 connection, workspaceId, lakehouseId, tables, bypassCache, cancellationToken);
 
             var result = tables
                 .Select(t =>
                 {
                     var item = lakehouseMapper.Map(t);
-                    var stats = statsByTable.GetValueOrDefault(t.Name);
 
-                    item.RowCount = stats?.RowCount;
-                    item.LastModifiedTime = stats?.LastModifiedTime;
-                    item.Status = (stats?.Status ?? TableStatus.Unknown).ToString();
-                    item.StatusMessage = stats?.StatusMessage;
+                    if (snapshot.Ready.TryGetValue(t.Name, out var stats))
+                    {
+                        item.RowCount = stats.RowCount;
+                        item.LastModifiedTime = stats.LastModifiedTime;
+                        item.Status = stats.Status.ToString();
+                        item.StatusMessage = stats.StatusMessage;
+                    }
+                    else
+                    {
+                        item.Status = TableStatus.Checking.ToString();
+                    }
+
                     return item;
                 })
                 .ToList();
 
-            return Result<PagedResponseWithCursor<IEnumerable<TableResponse>>>.Success(
-                new PagedResponseWithCursor<IEnumerable<TableResponse>>(result, pageInformation));
+            var page = new PagedResponseWithCursor<IEnumerable<TableResponse>>(result, pageInformation);
+
+            if (snapshot.Pending.Count == 0)
+                return Result<EventStreamingAdapter<PagedResponseWithCursor<IEnumerable<TableResponse>>>>.Success(
+                    EventStreamingAdapter<PagedResponseWithCursor<IEnumerable<TableResponse>>>.Ready(page));
+
+            var pendingTables = snapshot.Pending;
+            var adapter = eventStreamService.Stream(
+                page,
+                pendingFields: [nameof(TableResponse.RowCount), nameof(TableResponse.LastModifiedTime), nameof(TableResponse.Status), nameof(TableResponse.StatusMessage)],
+                work: ctx => ctx.Services.GetRequiredService<ILakehouseTableStatsService>().ComputeStatsAsync(
+                    connection, workspaceId, lakehouseId, pendingTables,
+                    onCompleted: (tableName, stats) =>
+                    {
+                        ctx.Publish(LakehouseStreamEvents.TableStats, TableStatsStreamEvent.From(tableName, stats));
+                        return Task.CompletedTask;
+                    },
+                    bypassCache: bypassCache,
+                    cancellationToken: ctx.CancellationToken));
+
+            return Result<EventStreamingAdapter<PagedResponseWithCursor<IEnumerable<TableResponse>>>>.Success(adapter);
         }
 
         public async Task<Result<OperationAcceptedResponse>> LoadTableAsync(

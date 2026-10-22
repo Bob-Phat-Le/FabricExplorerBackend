@@ -6,6 +6,7 @@
         Empty,
         Stale,
         Unknown,
-        Error
+        Error,
+        Checking
     }
 }

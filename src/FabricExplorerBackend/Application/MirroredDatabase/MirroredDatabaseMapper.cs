@@ -43,6 +43,7 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
         {
             MirroringStatus.Running => MirroredDatabaseOnlineStatus.Active,
             MirroringStatus.Unknown => MirroredDatabaseOnlineStatus.Unknown,
+            MirroringStatus.Checking => MirroredDatabaseOnlineStatus.Checking,
             _ => MirroredDatabaseOnlineStatus.Offline
         };
 

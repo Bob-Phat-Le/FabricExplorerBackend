@@ -9,6 +9,7 @@
         Paused,
         Stopping,
         Stopped,
-        Unknown
+        Unknown,
+        Checking
     }
 }
