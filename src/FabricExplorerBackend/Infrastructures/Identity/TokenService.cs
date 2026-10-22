@@ -16,12 +16,12 @@ namespace FabricExplorerBackend.Infrastructures.Identity
         private AuthenticationOptions authenOptions = authenOptions.Value;
 
         public ClientSecretCredential CreateClientSecretCredential(Guid tenantId, Guid clientId, string clientSecret, bool isProtected = true)
-            => isProtected ? 
+            => isProtected ?
             new ClientSecretCredential(
                 tenantId.ToString(),
                 clientId.ToString(),
                 secretProtector.Unprotect(clientSecret)
-            ) : 
+            ) :
             new ClientSecretCredential(
                 tenantId.ToString(),
                 clientId.ToString(),

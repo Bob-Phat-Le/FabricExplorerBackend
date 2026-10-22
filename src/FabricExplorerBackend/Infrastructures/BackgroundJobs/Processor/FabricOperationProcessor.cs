@@ -98,7 +98,7 @@ namespace FabricExplorerBackend.Infrastructures.Workers.Processor
             }
 
             var client = restClientFactory.CreateFabricRestClient(connection);
-            var state = await client.GetAsync<FabricOperationStateDto>(url, ct);
+            var state = (await client.GetAsync<FabricOperationStateDto>(url, ct))?.Data;
 
             Apply(op, state, now);
         }

@@ -385,8 +385,7 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
                     ? url
                     : $"{url}?continuationToken={Uri.EscapeDataString(continuationToken)}";
 
-                var response = await client.PostAsync<object?, FabricValueListResponse<TableMirroringStatusDto>>(
-                    pageUrl, null, cancellationToken);
+                var response = (await client.PostAsync<object?, FabricValueListResponse<TableMirroringStatusDto>>(pageUrl, null, cancellationToken))?.Data;
 
                 if (response?.Data is { } data)
                     items.AddRange(data.OfType<TableMirroringStatusDto>());

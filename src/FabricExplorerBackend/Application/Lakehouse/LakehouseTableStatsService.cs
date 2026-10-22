@@ -208,14 +208,14 @@ namespace FabricExplorerBackend.Application.Lakehouse
                 fabricOptions.SqlSchemas.Default);
         }
 
-        private Task<FabricLakehouseDetailResponse?> GetLakehouseAsync(
+        private async Task<FabricLakehouseDetailResponse?> GetLakehouseAsync(
             Domain.Entities.Connection connection, Guid workspaceId, Guid lakehouseId, CancellationToken ct)
         {
             var client = fabricRestClientFactory.CreateFabricRestClient(connection);
             var url =
                 $"{fabricOptions.Api.BaseUrl}" +
                 $"/workspaces/{workspaceId}/lakehouses/{lakehouseId}";
-            return client.GetAsync<FabricLakehouseDetailResponse>(url, ct);
+            return (await client.GetAsync<FabricLakehouseDetailResponse>(url, ct))?.Data;
         }
 
         private async Task<TableStats> GetTableStatsAsync(

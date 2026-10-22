@@ -1,4 +1,5 @@
 ﻿using FabricExplorerBackend.Commons.Errors;
+using FabricExplorerBackend.Commons.Fabric;
 using FabricExplorerBackend.Infrastructures.Identity;
 using FabricExplorerBackend.Infrastructures.Options;
 using Microsoft.Extensions.Options;
@@ -15,22 +16,55 @@ namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
         private const int MaxBodyChars = 4000;
         private AzureOptions azureOptions = azureOptions.Value;
 
-        public async Task<TResponse?> GetAsync<TResponse>(string endpoint, CancellationToken cancellationToken = default)
+        public async Task<FabricResponse<TResponse>?> GetAsync<TResponse>(string endpoint, CancellationToken cancellationToken = default)
         {
             using var response = await SendAsync(HttpMethod.Get, endpoint, null, cancellationToken);
-            return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            TResponse? data = default;
+            if (!string.IsNullOrWhiteSpace(content))
+                data = JsonSerializer.Deserialize<TResponse>(content, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+            return new FabricResponse<TResponse>
+            {
+                Status = (int)response.StatusCode,
+                Headers = response.Headers.ToDictionary(x => x.Key, x => x.Value.ToArray()),
+                Data = data
+            };
         }
 
-        public async Task<TResponse?> PostAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
+        public async Task<FabricResponse<TResponse>?> PostAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         {
             using var response = await SendAsync(HttpMethod.Post, endpoint, request, cancellationToken);
-            return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            TResponse? data = default;
+            if (!string.IsNullOrWhiteSpace(content))
+                data = JsonSerializer.Deserialize<TResponse>(content, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+            return new FabricResponse<TResponse>
+            {
+                Status = (int)response.StatusCode,
+                Headers = response.Headers.ToDictionary(x => x.Key, x => x.Value.ToArray()),
+                Data = data
+            };
         }
 
-        public async Task<TResponse?> PatchAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
+        public async Task<FabricResponse<TResponse>?> PatchAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         {
             using var response = await SendAsync(HttpMethod.Patch, endpoint, request, cancellationToken);
-            return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            TResponse? data = default;
+            if (!string.IsNullOrWhiteSpace(content))
+                data = JsonSerializer.Deserialize<TResponse>(content, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+            return new FabricResponse<TResponse>
+            {
+                Status = (int)response.StatusCode,
+                Headers = response.Headers.ToDictionary(x => x.Key, x => x.Value.ToArray()),
+                Data = data
+            };
         }
 
         public async Task DeleteAsync(string endpoint, CancellationToken cancellationToken = default)

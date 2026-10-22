@@ -41,7 +41,7 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
             if (!isFirstPage)
                 url += $"&continuationToken={Uri.EscapeDataString(continuationToken!)}";
 
-            var response = await client.GetAsync<FabricValueListResponse<FabricTableResponse>>(url, cancellationToken);
+            var response = (await client.GetAsync<FabricValueListResponse<FabricTableResponse>>(url, cancellationToken))?.Data;
 
             var allTables = response?.Data ?? [];
             IEnumerable<FabricTableResponse> tables = allTables!;
@@ -112,8 +112,22 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 
             var loadTableRequest = lakehouseMapper.Map(request);
 
-            var response = await context.Client.Lakehouse.Tables.LoadTableAsync(
-                workspaceId, lakehouseId, tableName, loadTableRequest, cancellationToken: CancellationToken.None);
+            //var response = await context.Client.Lakehouse.Tables.LoadTableAsync(
+            //    workspaceId, lakehouseId, tableName, loadTableRequest, cancellationToken: CancellationToken.None);
+
+            //if (response.Status != StatusCodes.Status202Accepted)
+            //    return Result<OperationAcceptedResponse>.Success(new(null, "Table load completed."));
+
+            //response.Headers.TryGetValue("x-ms-operation-id", out var fabricOperationId);
+            //response.Headers.TryGetValue("Location", out var location);
+
+            string endpoint =
+                $"{fabricOptions.Api.BaseUrl}" +
+                $"/workspaces/{workspaceId}" +
+                $"/lakehouses/{lakehouseId}/tables/{tableName}/load";
+
+            var client = fabricRestClientFactory.CreateFabricRestClient(connection);
+            var response = await client.PostAsync<ApplicationLoadTableRequest, Azure.Response>(endpoint, request, cancellationToken);
 
             if (response.Status != StatusCodes.Status202Accepted)
                 return Result<OperationAcceptedResponse>.Success(new(null, "Table load completed."));
@@ -123,7 +137,7 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 
             try
             {
-                var operationRequest = fabricOperationMapper.Map(response);
+                var operationRequest = fabricOperationMapper.Map(response.Data);
                 operationRequest.OperationType = FabricOperationTypes.LoadTable;
                 operationRequest.ConnectionId = connectionId;
                 operationRequest.WorkspaceId = workspaceId;
