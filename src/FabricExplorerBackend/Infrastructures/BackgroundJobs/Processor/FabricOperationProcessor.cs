@@ -90,15 +90,15 @@ namespace FabricExplorerBackend.Infrastructures.Workers.Processor
                 return;
             }
 
-            if (!IsTrustedFabricUrl(op.FabricOperationUrl, out var url))
-            {
-                Finish(op, FabricOperationStatus.Failed, ErrorCodes.Operation.UntrustedUrl,
-                    "The stored operation URL does not point to Fabric.", now);
-                return;
-            }
+            //if (!IsTrustedFabricUrl(op.FabricOperationUrl, out var url))
+            //{
+            //    Finish(op, FabricOperationStatus.Failed, ErrorCodes.Operation.UntrustedUrl,
+            //        "The stored operation URL does not point to Fabric.", now);
+            //    return;
+            //}
 
             var client = restClientFactory.CreateFabricRestClient(connection);
-            var state = await client.GetAsync<FabricOperationStateDto>(url, ct);
+            var state = await client.GetAsync<FabricOperationStateDto>(op.FabricOperationUrl!, ct);
 
             Apply(op, state, now);
         }
