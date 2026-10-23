@@ -24,6 +24,8 @@ namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
         public async Task<TResponse?> PostAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
         {
             using var response = await SendAsync(HttpMethod.Post, endpoint, request, cancellationToken);
+            if (typeof(TResponse) == typeof(HttpResponseMessage))
+                return (TResponse)(object)response;
             return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
         }
 
