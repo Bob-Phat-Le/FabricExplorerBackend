@@ -55,5 +55,18 @@ namespace FabricExplorerBackend.Application.Operation
                 UpdatedAt = operation.UpdatedAt
             };
         }
+
+        public CreateFabricOperationRequest Map(HttpResponseMessage response)
+        {
+            var retryAfter = response.Headers.RetryAfter?.Delta;
+
+            return new CreateFabricOperationRequest
+            {
+                OperationId = Guid.Parse(response.Headers.GetValues("x-ms-operation-id").First()),
+                OperationUrl = new Uri(response.Headers.Location?.ToString()
+                    ?? throw new InvalidOperationException("Location header is missing.")),
+                RetryAfter = retryAfter ?? TimeSpan.FromSeconds(DefaultRetryAfterSeconds)
+            };
+        }
     }
 }

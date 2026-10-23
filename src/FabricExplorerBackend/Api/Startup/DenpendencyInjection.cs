@@ -19,6 +19,7 @@ using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Security;
 using FabricExplorerBackend.Infrastructures.Sql;
+using FabricExplorerBackend.Infrastructures.Workers.Processor;
 using FabricExplorerBackend.Mappers;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
@@ -71,6 +72,10 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddSingleton<IEventRegistry, EventRegistry>();
             services.AddSingleton<IEventPublisher, EventPublisher>();
             services.AddHostedService<EventStreamCleanupService>();
+
+            // Background Worker
+            services.AddScoped<IFabricOperationProcessor, FabricOperationProcessor>();
+            services.AddHostedService<FabricOperationPollingService>();
 
             return services;
         }

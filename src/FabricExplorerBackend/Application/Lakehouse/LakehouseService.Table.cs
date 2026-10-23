@@ -7,6 +7,7 @@ using FabricExplorerBackend.Commons.EventStreaming;
 using FabricExplorerBackend.Commons.Paginations;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
+using System.ClientModel;
 
 namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 {
@@ -112,14 +113,31 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 
             var loadTableRequest = lakehouseMapper.Map(request);
 
-            var response = await context.Client.Lakehouse.Tables.LoadTableAsync(
-                workspaceId, lakehouseId, tableName, loadTableRequest, cancellationToken: CancellationToken.None);
+            //var response = await context.Client.Lakehouse.Tables.LoadTableAsync(
+            //    workspaceId, lakehouseId, tableName, loadTableRequest, cancellationToken: CancellationToken.None);
 
-            if (response.Status != StatusCodes.Status202Accepted)
+            //if (response.Status != StatusCodes.Status202Accepted)
+            //    return Result<OperationAcceptedResponse>.Success(new(null, "Table load completed."));
+
+            //response.Headers.TryGetValue("x-ms-operation-id", out var fabricOperationId);
+            //response.Headers.TryGetValue("Location", out var location);
+
+            var url =
+                $"{fabricOptions.Api.BaseUrl}" +
+                $"/workspaces/{workspaceId}" +
+                $"/lakehouses/{lakehouseId}/tables" +
+                $"/{tableName}/load";
+
+            var client = fabricRestClientFactory.CreateFabricRestClient(connection);
+            var response = await client.PostAsync<ApplicationLoadTableRequest, HttpResponseMessage>(url, request, cancellationToken);
+            if (response == null)
+                throw new Exception();
+
+            if ((int)response.StatusCode != StatusCodes.Status202Accepted)
                 return Result<OperationAcceptedResponse>.Success(new(null, "Table load completed."));
 
-            response.Headers.TryGetValue("x-ms-operation-id", out var fabricOperationId);
-            response.Headers.TryGetValue("Location", out var location);
+            response.Headers.TryGetValues("x-ms-operation-id", out var fabricOperationId);
+            response.Headers.TryGetValues("Location", out var location);
 
             try
             {
@@ -134,14 +152,14 @@ namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 
                 return Result<OperationAcceptedResponse>.Success(new(
                     created.Data!.Id,
-                    "Load table accepted. Poll GET /api/operations/{operationId} until the status is final."));
+                    $"Load table accepted. Poll GET /api/operations/{created.Data.Id} until the status is final."));
             }
             catch (Exception ex)
             {
                 logger.LogError(ex,
                     "LoadTable was accepted by Fabric but the operation could not be tracked. " +
                     "FabricOperationId={FabricOperationId} Location={Location} Table={Table} Lakehouse={LakehouseId}",
-                    fabricOperationId, location, tableName, lakehouseId);
+                    fabricOperationId.First(), location.First(), tableName, lakehouseId);
 
                 return Result<OperationAcceptedResponse>.Success(new(
                     null,
