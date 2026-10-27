@@ -1,5 +1,6 @@
-﻿using FabricExplorerBackend.Application.Connection;
+using FabricExplorerBackend.Application.Connection;
 using FabricExplorerBackend.Infrastructures.Cache;
+using FabricExplorerBackend.Infrastructures.Fabric.Client;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Identity;
 using FabricExplorerBackend.Infrastructures.Options;
@@ -18,6 +19,7 @@ namespace FabricExplorerBackend.UnitTests.Features.Connection.Abstraction
         protected readonly Mock<ITokenService> _tokenService = new();
         protected readonly Mock<ICacheService> _cacheService = new();
         protected readonly Mock<IHttpContextAccessor> _httpContext = new();
+        protected readonly Mock<IClientFactory> _clientFactory = new();
         protected readonly Mock<IFabricContextFactory> _contextFactory = new();
         protected readonly Mock<ISecretProtector> _secretProtector = new();
         protected readonly Mock<IUnitOfWork> _unitOfWork = new();
@@ -53,6 +55,7 @@ namespace FabricExplorerBackend.UnitTests.Features.Connection.Abstraction
                 _tokenService.Object,
                 _cacheService.Object,
                 _httpContext.Object,
+                _clientFactory.Object,
                 _contextFactory.Object,
                 _secretProtector.Object,
                 _unitOfWork.Object,

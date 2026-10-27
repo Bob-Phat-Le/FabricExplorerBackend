@@ -1,4 +1,5 @@
-﻿using FabricExplorerBackend.Application.Operation;
+﻿using FabricExplorerBackend.Application.Notification;
+using FabricExplorerBackend.Application.Operation;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Domain.Entities;
 using FabricExplorerBackend.Domain.Enums;
@@ -13,6 +14,7 @@ namespace FabricExplorerBackend.Infrastructures.Workers.Processor
 {
     public sealed class FabricOperationProcessor(
     IUnitOfWork unitOfWork,
+    INotificationService notificationService,
     IFabricRestClientFactory restClientFactory,
     ICacheService cache,
     IOptions<FabricOptions> fabricOptions,
@@ -63,6 +65,11 @@ namespace FabricExplorerBackend.Infrastructures.Workers.Processor
             {
                 RecordPollFailure(op, ex, now);
             }
+
+            // The processor stays the single source of truth for the final status; the notification only reports it.
+            // It is staged before the save so the status change and its notification commit in one transaction.
+            if (op.Status.IsTerminal())
+                await notificationService.StageOperationResultAsync(op, CancellationToken.None);
 
             await unitOfWork.SaveChangesAsync();
 

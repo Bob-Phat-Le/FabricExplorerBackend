@@ -36,7 +36,7 @@ namespace FabricExplorerBackend.Api.Controllers
             Response.StatusCode = StatusCodes.Status200OK;
             Response.ContentType = "text/event-stream; charset=utf-8";
             Response.Headers.CacheControl = "no-cache, no-store, no-transform";
-            Response.Headers["X-Accel-Buffering"] = "no"; // tắt buffer của nginx
+            Response.Headers["X-Accel-Buffering"] = "no";
             HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
 
             await Response.StartAsync(cancellationToken);

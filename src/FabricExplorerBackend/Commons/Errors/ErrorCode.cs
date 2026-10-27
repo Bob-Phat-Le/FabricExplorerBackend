@@ -44,6 +44,11 @@
             public const string NotFound = "event_stream.not_found";
             public const string LimitReached = "event_stream.limit_reached";
         }
+
+        public static class Notification
+        {
+            public const string NotFound = "notification.not_found";
+        }
         public static class Sql { public const string QueryFailed = "sql.query_failed"; }
         public static class Cache { public const string Unavailable = "cache.unavailable"; }
         public static class Upstream { public const string Timeout = "upstream.timeout"; }

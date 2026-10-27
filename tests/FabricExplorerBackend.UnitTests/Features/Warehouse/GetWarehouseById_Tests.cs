@@ -95,15 +95,16 @@ namespace FabricExplorerBackend.UnitTests.Features.Warehouse
             // Assert
             Assert.True(result.IsSuccess);
             Assert.NotNull(result.Data);
+            Assert.NotNull(result.Data.InnerData);
 
-            Assert.Equal(_warehouseId, result.Data.Id);
-            Assert.Equal("GoldWarehouse", result.Data.Name);
-            Assert.Equal("Analytics gold layer", result.Data.Description);
-            Assert.Equal(WarehouseOnlineStatus.Online.ToString(), result.Data.OnlineStatus);
-            Assert.Null(result.Data.OnlineStatusMessage);
-            Assert.Equal(_workspaceId, result.Data.Workspace!.Id);
-            Assert.Equal("My Analytics Workspace", result.Data.Workspace.Name);
-            Assert.Equal(capacityId, result.Data.Workspace.CapacityId);
+            Assert.Equal(_warehouseId, result.Data.InnerData.Id);
+            Assert.Equal("GoldWarehouse", result.Data.InnerData.Name);
+            Assert.Equal("Analytics gold layer", result.Data.InnerData.Description);
+            Assert.Equal(WarehouseOnlineStatus.Online.ToString(), result.Data.InnerData.OnlineStatus);
+            Assert.Null(result.Data.InnerData.OnlineStatusMessage);
+            Assert.Equal(_workspaceId, result.Data.InnerData.Workspace!.Id);
+            Assert.Equal("My Analytics Workspace", result.Data.InnerData.Workspace.Name);
+            Assert.Equal(capacityId, result.Data.InnerData.Workspace.CapacityId);
 
             _sqlQueryService.Verify(x =>
                 x.ExecuteScalarAsync<int?>(
@@ -160,8 +161,9 @@ namespace FabricExplorerBackend.UnitTests.Features.Warehouse
             // Assert
             Assert.True(result.IsSuccess);
             Assert.NotNull(result.Data);
-            Assert.Equal(WarehouseOnlineStatus.Unknown.ToString(), result.Data.OnlineStatus);
-            Assert.Contains("connection string", result.Data.OnlineStatusMessage);
+            Assert.NotNull(result.Data.InnerData);
+            Assert.Equal(WarehouseOnlineStatus.Unknown.ToString(), result.Data.InnerData.OnlineStatus);
+            Assert.Contains("connection string", result.Data.InnerData.OnlineStatusMessage);
 
             _sqlQueryService.Verify(x =>
                 x.ExecuteScalarAsync<int?>(
