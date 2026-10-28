@@ -1,6 +1,9 @@
-﻿namespace FabricExplorerBackend.Application.Notification.Contracts
+namespace FabricExplorerBackend.Application.Notification.Contracts
 {
-    public class NotificationStreamEvents
+    public static class NotificationStreamEvents
     {
+        public const string Channel = "notifications";
+        public const string UnreadCount = "unread-count";
+        public const string Notification = "notification";
     }
 }

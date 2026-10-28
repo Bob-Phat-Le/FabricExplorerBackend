@@ -1,6 +1,4 @@
-﻿namespace FabricExplorerBackend.Application.Notification.Contracts
+namespace FabricExplorerBackend.Application.Notification.Contracts
 {
-    public class NotificationStreamEvent
-    {
-    }
+    public sealed record NotificationStreamEvent(int UnreadCount, NotificationResponse? Notification);
 }

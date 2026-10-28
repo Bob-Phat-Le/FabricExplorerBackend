@@ -13,14 +13,14 @@ using Microsoft.Extensions.Options;
 namespace FabricExplorerBackend.Infrastructures.Workers.Processor
 {
     public sealed class FabricOperationProcessor(
-    IUnitOfWork unitOfWork,
-    INotificationService notificationService,
-    IFabricRestClientFactory restClientFactory,
-    ICacheService cache,
-    IOptions<FabricOptions> fabricOptions,
-    IOptions<OperationPollingOptions> operationPollingOptions,
-    TimeProvider clock,
-    ILogger<FabricOperationProcessor> logger) : IFabricOperationProcessor
+        IUnitOfWork unitOfWork,
+        INotificationService notificationService,
+        IFabricRestClientFactory restClientFactory,
+        ICacheService cache,
+        IOptions<FabricOptions> fabricOptions,
+        IOptions<OperationPollingOptions> operationPollingOptions,
+        TimeProvider clock,
+        ILogger<FabricOperationProcessor> logger) : IFabricOperationProcessor
     {
         private const int MaxMessageLength = 2000;
         private readonly OperationPollingOptions opt = operationPollingOptions.Value;
@@ -66,12 +66,14 @@ namespace FabricExplorerBackend.Infrastructures.Workers.Processor
                 RecordPollFailure(op, ex, now);
             }
 
-            // The processor stays the single source of truth for the final status; the notification only reports it.
-            // It is staged before the save so the status change and its notification commit in one transaction.
+            IReadOnlyList<Domain.Entities.Notification> staged = [];
             if (op.Status.IsTerminal())
-                await notificationService.StageOperationResultAsync(op, CancellationToken.None);
+                staged = await notificationService.StageOperationResultAsync(op, CancellationToken.None);
 
             await unitOfWork.SaveChangesAsync();
+
+            foreach (var notification in staged)
+                await notificationService.PublishAsync(notification.UserId, notification, CancellationToken.None);
 
             if (op.Status.IsTerminal())
                 logger.LogInformation("Operation finished with {Status} ({ErrorCode})", op.Status, op.ErrorCode);
@@ -96,13 +98,6 @@ namespace FabricExplorerBackend.Infrastructures.Workers.Processor
                     "The connection was deleted while the operation was running.", now);
                 return;
             }
-
-            //if (!IsTrustedFabricUrl(op.FabricOperationUrl, out var url))
-            //{
-            //    Finish(op, FabricOperationStatus.Failed, ErrorCodes.Operation.UntrustedUrl,
-            //        "The stored operation URL does not point to Fabric.", now);
-            //    return;
-            //}
 
             var client = restClientFactory.CreateFabricRestClient(connection);
             var state = await client.GetAsync<FabricOperationStateDto>(op.FabricOperationUrl!, ct);
@@ -210,19 +205,19 @@ namespace FabricExplorerBackend.Infrastructures.Workers.Processor
             }
         }
 
-        private bool IsTrustedFabricUrl(string? value, out string url)
-        {
-            url = string.Empty;
-            var baseUrl = fabricOptions.Api.BaseUrl;
+        //private bool IsTrustedFabricUrl(string? value, out string url)
+        //{
+        //    url = string.Empty;
+        //    var baseUrl = fabricOptions.Api.BaseUrl;
 
-            if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
-                || !Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri)
-                || uri.Scheme != Uri.UriSchemeHttps
-                || !uri.Host.Equals(baseUri.Host, StringComparison.OrdinalIgnoreCase))
-                return false;
+        //    if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
+        //        || !Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri)
+        //        || uri.Scheme != Uri.UriSchemeHttps
+        //        || !uri.Host.Equals(baseUri.Host, StringComparison.OrdinalIgnoreCase))
+        //        return false;
 
-            url = uri.ToString();
-            return true;
-        }
+        //    url = uri.ToString();
+        //    return true;
+        //}
     }
 }
