@@ -1,3 +1,4 @@
+using FabricExplorerBackend.Application.EventStreaming;
 using FabricExplorerBackend.Application.Lakehouse;
 using FabricExplorerBackend.Application.Lakehouse.Contracts;
 using FabricExplorerBackend.Application.Operation;
@@ -25,6 +26,7 @@ namespace FabricExplorerBackend.UnitTests.Features.Lakehouse.Abstraction
         protected readonly Mock<IFabricOperationService> _fabricOperationService = new();
         protected readonly Mock<ILakehouseMapper> _lakehouseMapper = new();
         protected readonly Mock<ILakehouseTableStatsService> _tableStatsService = new();
+        protected readonly Mock<IEventStreamService> _eventStreamService = new();
         protected readonly Mock<ICachedFetcher> _cachedFetcher = new();
 
         protected readonly Guid _connectionId = Guid.Parse("33333333-3333-3333-3333-333333333333");
@@ -37,8 +39,7 @@ namespace FabricExplorerBackend.UnitTests.Features.Lakehouse.Abstraction
         {
             var fabricOptions = Options.Create(new FabricOptions
             {
-                Api = new FabricApiOptions { BaseUrl = "https://api.fabric.microsoft.com/v1" },
-                SqlSchemas = new SqlSchemas { Default = "dbo" }
+                Api = new FabricApiOptions { BaseUrl = "https://api.fabric.microsoft.com/v1" }
             });
 
             var cacheOptions = Options.Create(new CacheOptions
@@ -75,6 +76,7 @@ namespace FabricExplorerBackend.UnitTests.Features.Lakehouse.Abstraction
                 _fabricOperationService.Object,
                 _lakehouseMapper.Object,
                 _tableStatsService.Object,
+                _eventStreamService.Object,
                 _cachedFetcher.Object);
         }
     }

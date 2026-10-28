@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
+using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements
@@ -7,9 +7,9 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
         IUserRepository userRepository,
         FabricExplorerDbContext context,
         IConnectionRepository connectionRepository,
-        IFabricOperationRepository fabricOperationRepository) : IUnitOfWork
+        IFabricOperationRepository fabricOperationRepository,
+        INotificationRepository notificationRepository) : IUnitOfWork
     {
-
         public async Task CommitTransaction(CancellationToken cancellationToken = default)
         {
             await context.Database.CommitTransactionAsync(cancellationToken);
@@ -29,6 +29,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
         {
             return await context.Database.BeginTransactionAsync(cancellationToken);
         }
+
         public void Dispose()
         {
             context.Dispose();
@@ -38,5 +39,6 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
         public IConnectionRepository ConnectionRepository => connectionRepository;
         public IUserRepository UserRepository => userRepository;
         public IFabricOperationRepository FabricOperationRepository => fabricOperationRepository;
+        public INotificationRepository NotificationRepository => notificationRepository;
     }
 }

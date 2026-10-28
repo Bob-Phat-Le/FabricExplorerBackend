@@ -25,6 +25,19 @@ namespace FabricExplorerBackend.Commons.EventStreaming
             return appended;
         }
 
+        public int PublishToOwner<T>(string ownerId, string channel, string eventName, T payload)
+        {
+            var data = JsonSerializer.Serialize(payload, JsonOptions);
+            var now = clock.GetUtcNow();
+            var delivered = 0;
+
+            foreach (var stream in registry.FindByOwner(ownerId, channel))
+                if (stream.TryAppend(eventName, data, now))
+                    delivered++;
+
+            return delivered;
+        }
+
         public void Complete(string streamId) => Publish(streamId, StreamEventNames.Completed, new { });
 
         public void Fail(string streamId, string code, string message)

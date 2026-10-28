@@ -1,7 +1,8 @@
-﻿using FabricExplorerBackend.Application.Connection;
+using FabricExplorerBackend.Application.Connection;
 using FabricExplorerBackend.Application.EventStreaming;
 using FabricExplorerBackend.Application.Lakehouse;
 using FabricExplorerBackend.Application.MirroredDatabase;
+using FabricExplorerBackend.Application.Notification;
 using FabricExplorerBackend.Application.Operation;
 using FabricExplorerBackend.Application.Warhouse;
 using FabricExplorerBackend.Application.Workspace;
@@ -50,6 +51,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<IMirroredDatabaseService, MirroredDatabaseService>();
             services.AddScoped<IWarehouseService, WarehouseService>();
             services.AddScoped<IEventStreamService, EventStreamService>();
+            services.AddScoped<INotificationService, NotificationService>();
 
             return services;
         }
@@ -66,6 +68,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<IConnectionRepository, ConnectionRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IFabricOperationRepository, FabricOperationRepository>();
+            services.AddScoped<INotificationRepository, NotificationRepository>();
 
             // Event streaming (SSE): registry in-memory shared globally for the whole app so must be singleton
             services.TryAddSingleton(TimeProvider.System);
@@ -86,6 +89,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<IFabricOperationMapper, FabricOperationMapper>();
             services.AddScoped<ILakehouseMapper, LakehouseMapper>();
             services.AddScoped<IMirroredDatabaseMapper, MirroredDatabaseMapper>();
+            services.AddScoped<INotificationMapper, NotificationMapper>();
 
             return services;
         }
@@ -114,13 +118,20 @@ namespace FabricExplorerBackend.Api.Startup
 
         public static IServiceCollection AddApplicationCors(this IServiceCollection services)
         {
+            // allow for localhost with any port
             services.AddCors(options =>
             {
                 options.AddPolicy("MyAllowSpecificOrigin", policy =>
                 {
-                    policy.WithOrigins("http://127.0.0.1:5500")
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
+                    policy.SetIsOriginAllowed(origin =>
+                    {
+                        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                            return false;
+
+                        return uri.IsLoopback;
+                    })
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
                 });
             });
 

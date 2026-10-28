@@ -17,7 +17,7 @@ namespace FabricExplorerBackend.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -163,6 +163,47 @@ namespace FabricExplorerBackend.Migrations
                     b.ToTable("Operations");
                 });
 
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("OperationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OperationId");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -213,6 +254,24 @@ namespace FabricExplorerBackend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("FabricExplorerBackend.Domain.Entities.FabricOperation", "Operation")
+                        .WithMany()
+                        .HasForeignKey("OperationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("FabricExplorerBackend.Domain.Entities.User", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Operation");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.User", b =>
                 {
                     b.HasOne("FabricExplorerBackend.Domain.Entities.Connection", "ActiveConnection")
@@ -227,6 +286,11 @@ namespace FabricExplorerBackend.Migrations
             modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.Connection", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.User", b =>
+                {
+                    b.Navigation("Notifications");
                 });
 #pragma warning restore 612, 618
         }

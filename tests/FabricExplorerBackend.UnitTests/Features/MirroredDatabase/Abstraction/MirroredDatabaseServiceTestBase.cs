@@ -1,3 +1,4 @@
+using FabricExplorerBackend.Application.EventStreaming;
 using FabricExplorerBackend.Application.MirroredDatabase;
 using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
 using FabricExplorerBackend.Application.Operation;
@@ -25,6 +26,7 @@ namespace FabricExplorerBackend.UnitTests.Features.MirroredDatabase.Abstraction
         protected readonly Mock<IFabricRestClient> _fabricRestClient = new();
         protected readonly Mock<IFabricOperationMapper> _fabricOperationMapper = new();
         protected readonly Mock<IFabricOperationService> _fabricOperationService = new();
+        protected readonly Mock<IEventStreamService> _eventStreamService = new();
         protected readonly Mock<ICachedFetcher> _cachedFetcher = new();
         protected readonly Mock<IUnitOfWork> _unitOfWork = new();
         protected readonly Mock<IConnectionRepository> _connectionRepository = new();
@@ -108,6 +110,7 @@ namespace FabricExplorerBackend.UnitTests.Features.MirroredDatabase.Abstraction
                 _fabricRestClientFactory.Object,
                 _fabricOperationMapper.Object,
                 _fabricOperationService.Object,
+                _eventStreamService.Object,
                 _cachedFetcher.Object,
                 cacheOptions,
                 fabricOptions,

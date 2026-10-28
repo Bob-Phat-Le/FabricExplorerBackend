@@ -1,3 +1,4 @@
+using FabricExplorerBackend.Application.EventStreaming;
 using FabricExplorerBackend.Application.Warhouse;
 using FabricExplorerBackend.Application.Warhouse.Contracts;
 using FabricExplorerBackend.Infrastructures.Cache;
@@ -15,6 +16,7 @@ namespace FabricExplorerBackend.UnitTests.Features.Warehouse.Abstraction
     {
         protected readonly Mock<IUnitOfWork> _unitOfWork = new();
         protected readonly Mock<IFabricContextFactory> _fabricContextFactory = new();
+        protected readonly Mock<IEventStreamService> _eventStreamService = new();
         protected readonly Mock<ISqlQueryService> _sqlQueryService = new();
         protected readonly Mock<ICachedFetcher> _cachedFetcher = new();
         protected readonly Mock<ILogger<WarehouseService>> _logger = new();
@@ -50,7 +52,7 @@ namespace FabricExplorerBackend.UnitTests.Features.Warehouse.Abstraction
             _service = new WarehouseService(
                 _unitOfWork.Object,
                 _fabricContextFactory.Object,
-                _sqlQueryService.Object,
+                _eventStreamService.Object,
                 cacheOptions,
                 _cachedFetcher.Object,
                 _logger.Object);

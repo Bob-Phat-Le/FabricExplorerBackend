@@ -91,8 +91,9 @@ namespace FabricExplorerBackend.UnitTests.Features.Lakehouse
             // Assert
             Assert.True(result.IsSuccess);
             Assert.NotNull(result.Data);
+            Assert.NotNull(result.Data.InnerData);
 
-            var items = result.Data.Items.ToList();
+            var items = result.Data.InnerData.Items.ToList();
             Assert.Equal(2, items.Count);
 
             Assert.Equal("Customer", items[0].Name);
@@ -103,9 +104,9 @@ namespace FabricExplorerBackend.UnitTests.Features.Lakehouse
             Assert.Equal("Orders", items[1].Name);
             Assert.Equal(50000, items[1].RowCount);
 
-            Assert.Equal(10, result.Data.PageInformation!.PageSize);
-            Assert.Equal("next-token-123", result.Data.PageInformation.NextToken);
-            Assert.Equal(2, result.Data.PageInformation.ItemsCount);
+            Assert.Equal(10, result.Data.InnerData.PageInformation!.PageSize);
+            Assert.Equal("next-token-123", result.Data.InnerData.PageInformation.NextToken);
+            Assert.Equal(2, result.Data.InnerData.PageInformation.ItemsCount);
         }
 
         [Fact]
@@ -150,7 +151,8 @@ namespace FabricExplorerBackend.UnitTests.Features.Lakehouse
             // Assert
             Assert.True(result.IsSuccess);
             Assert.NotNull(result.Data);
-            Assert.Empty(result.Data.Items);
+            Assert.NotNull(result.Data.InnerData);
+            Assert.Empty(result.Data.InnerData.Items);
 
             _fabricRestClient.Verify(x =>
                 x.GetAsync<FabricValueListResponse<FabricTableResponse>>(expectedUrl, It.IsAny<CancellationToken>()),

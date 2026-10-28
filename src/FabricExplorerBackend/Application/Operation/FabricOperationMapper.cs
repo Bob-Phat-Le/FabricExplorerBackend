@@ -34,6 +34,7 @@ namespace FabricExplorerBackend.Application.Operation
                 ConnectionId = request.ConnectionId,
                 WorkspaceId = request.WorkspaceId,
                 ResourceId = request.ResourceId,
+                ResourceName = request.ResourceName,
                 Status = FabricOperationStatus.Pending,
                 NextPollAt = now.Add(request.RetryAfter),
                 CreatedAt = now

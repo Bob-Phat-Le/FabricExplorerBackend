@@ -16,7 +16,7 @@ namespace FabricExplorerBackend.Commons.EventStreaming
         private readonly EventStreamingOptions options = options.Value;
         private readonly ConcurrentDictionary<string, EventStream> streams = new();
 
-        public EventStream Create(string? ownerId)
+        public EventStream Create(string? ownerId, string? channel = null)
         {
             if (streams.Count >= options.MaxActiveStreams)
             {
@@ -29,12 +29,21 @@ namespace FabricExplorerBackend.Commons.EventStreaming
             while (true)
             {
                 var id = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(16));
-                var stream = new EventStream(id, ownerId, options.MaxEventsPerStream, clock.GetUtcNow());
+                var stream = new EventStream(id, ownerId, options.MaxEventsPerStream, clock.GetUtcNow(), channel);
                 if (streams.TryAdd(id, stream))
                     return stream;
 
                 stream.Dispose();
             }
+        }
+
+        public IReadOnlyList<EventStream> FindByOwner(string ownerId, string channel)
+        {
+            return streams.Values
+                .Where(s => !s.IsCompleted
+                    && string.Equals(s.OwnerId, ownerId, StringComparison.Ordinal)
+                    && string.Equals(s.Channel, channel, StringComparison.Ordinal))
+                .ToList();
         }
 
         public bool TryGet(string streamId, out EventStream stream)

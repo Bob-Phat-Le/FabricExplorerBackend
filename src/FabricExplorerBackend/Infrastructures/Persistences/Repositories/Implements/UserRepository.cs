@@ -53,6 +53,15 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             return query.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         }
 
+        public Task<List<Guid>> GetIdsByActiveConnectionAsync(Guid connectionId, CancellationToken cancellationToken = default)
+        {
+            return context.Users
+                .AsNoTracking()
+                .Where(u => u.DeletedAt == null && u.ActiveConnectionId == connectionId)
+                .Select(u => u.Id)
+                .ToListAsync(cancellationToken);
+        }
+
         public void Update(User entity)
         {
             context.Users.Update(entity);

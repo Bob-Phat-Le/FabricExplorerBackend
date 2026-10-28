@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Domain.Entities.Abstractions;
+using FabricExplorerBackend.Domain.Entities.Abstractions;
 
 namespace FabricExplorerBackend.Domain.Entities
 {
@@ -21,5 +21,6 @@ namespace FabricExplorerBackend.Domain.Entities
         public string Email { get; set; } = null!;
         public Guid ActiveConnectionId { get; set; }
         public Connection ActiveConnection { get; set; } = null!;
+        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     }
 }

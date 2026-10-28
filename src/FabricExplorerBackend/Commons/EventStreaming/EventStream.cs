@@ -8,10 +8,11 @@ namespace FabricExplorerBackend.Commons.EventStreaming
         private readonly int maxEvents;
         private TaskCompletionSource signal = NewSignal();
 
-        public EventStream(string id, string? ownerId, int maxEvents, DateTimeOffset createdAt)
+        public EventStream(string id, string? ownerId, int maxEvents, DateTimeOffset createdAt, string? channel = null)
         {
             Id = id;
             OwnerId = ownerId;
+            Channel = channel;
             CreatedAt = createdAt;
             this.maxEvents = maxEvents;
             Lifetime = lifetime.Token;
@@ -19,6 +20,8 @@ namespace FabricExplorerBackend.Commons.EventStreaming
 
         public string Id { get; }
         public string? OwnerId { get; }
+
+        public string? Channel { get; }
         public DateTimeOffset CreatedAt { get; }
         public DateTimeOffset? CompletedAt { get; private set; }
         public bool IsCompleted { get { lock (gate) return CompletedAt.HasValue; } }
