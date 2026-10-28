@@ -1,4 +1,4 @@
-﻿namespace FabricExplorerBackend.Commons.Errors
+namespace FabricExplorerBackend.Commons.Errors
 {
     public static class ErrorCodes
     {
@@ -48,6 +48,11 @@
         public static class Notification
         {
             public const string NotFound = "notification.not_found";
+        }
+        public static class Catalog
+        {
+            public const string BadRequest = "catalog.bad_request";
+            public const string TableNotFound = "catalog.table_not_found";
         }
         public static class Sql { public const string QueryFailed = "sql.query_failed"; }
         public static class Cache { public const string Unavailable = "cache.unavailable"; }

@@ -1,3 +1,4 @@
+using FabricExplorerBackend.Application.Catalog;
 using FabricExplorerBackend.Application.Connection;
 using FabricExplorerBackend.Application.EventStreaming;
 using FabricExplorerBackend.Application.Lakehouse;
@@ -14,6 +15,7 @@ using FabricExplorerBackend.Infrastructures.Fabric.Client;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
 using FabricExplorerBackend.Infrastructures.Identity;
+using FabricExplorerBackend.Infrastructures.OneLake;
 using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements;
@@ -52,6 +54,8 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<IWarehouseService, WarehouseService>();
             services.AddScoped<IEventStreamService, EventStreamService>();
             services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<ICatalogService, CatalogService>();
+            services.AddScoped<IDeltaTableApi, DeltaTableApi>();
 
             return services;
         }
@@ -149,6 +153,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddOptions<FabricOptions>().BindConfiguration(FabricOptions.SectionName);
             services.AddOptions<OperationPollingOptions>().BindConfiguration(OperationPollingOptions.SectionName);
             services.AddOptions<EventStreamingOptions>().BindConfiguration(EventStreamingOptions.SectionName);
+            services.AddOptions<CatalogOptions>().BindConfiguration(CatalogOptions.SectionName);
 
             return services;
         }

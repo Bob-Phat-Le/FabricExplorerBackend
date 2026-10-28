@@ -1,7 +1,9 @@
-﻿namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
+namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
 {
     public interface IFabricRestClientFactory
     {
-        IFabricRestClient CreateFabricRestClient(Domain.Entities.Connection connection);
+        IFabricRestClient CreateFabricRestClient(
+            Domain.Entities.Connection connection,
+            FabricApiAudience audience = FabricApiAudience.Fabric);
     }
 }
