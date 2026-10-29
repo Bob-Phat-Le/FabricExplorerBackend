@@ -1,4 +1,4 @@
-using FabricExplorerBackend.Application.Lakehouse;
+using FabricExplorerBackend.Features.Lakehouse;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;

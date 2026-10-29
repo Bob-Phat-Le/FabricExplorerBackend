@@ -1,6 +1,6 @@
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
-using FabricExplorerBackend.Infrastructures.Options;
+using FabricExplorerBackend.Configurations.Options;
 using Microsoft.Extensions.Options;
 using System.Buffers.Text;
 using System.Collections.Concurrent;

@@ -1,6 +1,6 @@
-using FabricExplorerBackend.Application.Lakehouse;
 using FabricExplorerBackend.Application.Lakehouse.Contracts;
 using FabricExplorerBackend.Commons.Paginations;
+using FabricExplorerBackend.Features.Lakehouse;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
 using FabricExplorerBackend.UnitTests.Features.Lakehouse.Abstraction;
 using Moq;

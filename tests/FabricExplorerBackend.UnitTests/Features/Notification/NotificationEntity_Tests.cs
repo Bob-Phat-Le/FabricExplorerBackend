@@ -1,5 +1,5 @@
-using FabricExplorerBackend.Application.Notification.Contracts;
 using FabricExplorerBackend.Domain.Entities;
+using FabricExplorerBackend.Features.Notification.Contracts;
 
 namespace FabricExplorerBackend.UnitTests.Features.Notification
 {

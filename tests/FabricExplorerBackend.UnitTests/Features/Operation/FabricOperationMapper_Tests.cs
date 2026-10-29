@@ -1,7 +1,7 @@
-using FabricExplorerBackend.Application.Operation;
 using FabricExplorerBackend.Application.Operation.Contracts;
 using FabricExplorerBackend.Domain.Entities;
 using FabricExplorerBackend.Domain.Enums;
+using FabricExplorerBackend.Features.Operation;
 using FabricExplorerBackend.UnitTests.Common;
 
 namespace FabricExplorerBackend.UnitTests.Features.Operation

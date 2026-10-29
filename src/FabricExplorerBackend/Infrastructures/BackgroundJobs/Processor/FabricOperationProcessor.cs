@@ -1,12 +1,12 @@
-﻿using FabricExplorerBackend.Application.Notification;
-using FabricExplorerBackend.Application.Operation;
-using FabricExplorerBackend.Commons.Errors;
+﻿using FabricExplorerBackend.Commons.Errors;
+using FabricExplorerBackend.Configurations.Options;
 using FabricExplorerBackend.Domain.Entities;
 using FabricExplorerBackend.Domain.Enums;
+using FabricExplorerBackend.Features.Notification;
+using FabricExplorerBackend.Features.Operation;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
-using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using Microsoft.Extensions.Options;
 

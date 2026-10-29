@@ -1,5 +1,6 @@
 using Azure;
 using FabricExplorerBackend.Commons.Errors;
+using FabricExplorerBackend.Features.MirroredDatabase.Contracts;
 using FabricExplorerBackend.UnitTests.Common;
 using FabricExplorerBackend.UnitTests.Features.MirroredDatabase.Abstraction;
 using Moq;
@@ -90,9 +91,9 @@ namespace FabricExplorerBackend.UnitTests.Features.MirroredDatabase
             _cachedFetcher.Verify(x => x.GetOrFetchAsync(
                 It.IsAny<string>(),
                 It.IsAny<TimeSpan>(),
-                It.IsAny<Func<CancellationToken, Task<IReadOnlyList<FabricExplorerBackend.Application.MirroredDatabase.Contracts.MirroredDatabaseListItemResponse>>>>(),
+                It.IsAny<Func<CancellationToken, Task<IReadOnlyList<MirroredDatabaseListItemResponse>>>>(),
                 true,
-                It.IsAny<Func<IReadOnlyList<FabricExplorerBackend.Application.MirroredDatabase.Contracts.MirroredDatabaseListItemResponse>, bool>?>(),
+                It.IsAny<Func<IReadOnlyList<MirroredDatabaseListItemResponse>, bool>?>(),
                 It.IsAny<CancellationToken>()), Times.Once);
         }
     }

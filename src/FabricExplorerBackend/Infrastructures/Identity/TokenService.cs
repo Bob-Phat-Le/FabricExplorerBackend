@@ -1,7 +1,7 @@
 ﻿using Azure.Core;
 using Azure.Identity;
+using FabricExplorerBackend.Configurations.Options;
 using FabricExplorerBackend.Infrastructures.Cache;
-using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Security;
 using Microsoft.Extensions.Options;
 

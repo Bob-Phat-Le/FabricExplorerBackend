@@ -1,6 +1,6 @@
-using FabricExplorerBackend.Application.Notification;
-using FabricExplorerBackend.Application.Notification.Contracts;
 using FabricExplorerBackend.Commons.Errors;
+using FabricExplorerBackend.Features.Notification;
+using FabricExplorerBackend.Features.Notification.Contracts;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using Microsoft.Extensions.Logging;
 using Moq;

@@ -1,5 +1,5 @@
 using FabricExplorerBackend.Domain.Entities;
-using FabricExplorerBackend.Infrastructures.Persistences;
+using FabricExplorerBackend.Persistences;
 using Microsoft.EntityFrameworkCore;
 
 namespace FabricExplorerBackend.UnitTests.Features.Notification

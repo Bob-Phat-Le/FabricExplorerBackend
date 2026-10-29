@@ -1,0 +1,54 @@
+﻿using FabricExplorerBackend.Api.Contracts;
+using FabricExplorerBackend.Api.Extensions;
+using FabricExplorerBackend.Commons.Contracts;
+using FabricExplorerBackend.Commons.Paginations;
+using FabricExplorerBackend.Features.Connection.Contracts;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FabricExplorerBackend.Features.Connection
+{
+    [EnableCors("MyAllowSpecificOrigin")]
+    [Authorize]
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ConnectionsController(IConnectionService connectionService) : ControllerBase
+    {
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse<PagedResponse<IEnumerable<ConnectionResponse>>>>> GetAllConnections([FromQuery] PaginationRequest? paginationRequest, CancellationToken cancellationToken = default)
+            => (await connectionService.GetAllConnectionsAsync(paginationRequest)).ToActionResult(this);
+
+        [HttpGet("{connectionId}")]
+        public async Task<ActionResult<ApiResponse<ConnectionResponse>>> GetConnectionById(Guid connectionId)
+            => (await connectionService.GetConnectionByIdAsync(connectionId)).ToActionResult(this);
+
+        [HttpGet("active")]
+        public async Task<ActionResult<ApiResponse<ConnectionResponse>>> GetActiveConnection(CancellationToken cancellationToken = default)
+            => (await connectionService.GetActiveConnectionAsync()).ToActionResult(this);
+
+        [HttpPatch("{connectionId}")]
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> UpdateConnection(Guid connectionId, [FromBody] UpdateConnectionRequest request, CancellationToken cancellationToken = default)
+            => (await connectionService.UpdateConnection(connectionId, request)).ToActionResult(this);
+
+        [HttpDelete("{connectionId}")]
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> DeleteConnection(Guid connectionId, CancellationToken cancellationToken = default)
+            => (await connectionService.DeleteConnection(connectionId)).ToActionResult(this);
+
+        [HttpPost]
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> CreateConnection(CreateConnectionRequest request, CancellationToken cancellationToken = default)
+            => (await connectionService.CreateConnectionAsync(request)).ToActionResult(this);
+
+        [HttpPost("{connectionId}/test")]
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> TestSavedConnection(Guid connectionId, CancellationToken cancellationToken = default)
+            => (await connectionService.TestConnection(connectionId)).ToActionResult(this);
+
+        [HttpPost("test")]
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> TestUnsavedConnection([FromBody] TestConnectionRequest request, CancellationToken cancellationToken = default)
+            => (await connectionService.TestConnection(request)).ToActionResult(this);
+
+        [HttpPost("{connectionId}/active")]
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> ActiveConnection(Guid connectionId, CancellationToken cancellationToken = default)
+            => (await connectionService.ActiveConnection(connectionId)).ToActionResult(this);
+    }
+}

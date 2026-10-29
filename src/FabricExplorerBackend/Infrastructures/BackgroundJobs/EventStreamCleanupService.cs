@@ -1,5 +1,5 @@
 using FabricExplorerBackend.Commons.EventStreaming;
-using FabricExplorerBackend.Infrastructures.Options;
+using FabricExplorerBackend.Configurations.Options;
 using Microsoft.Extensions.Options;
 
 namespace FabricExplorerBackend.Infrastructures.BackgroundJobs

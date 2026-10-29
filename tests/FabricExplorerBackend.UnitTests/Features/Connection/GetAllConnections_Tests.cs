@@ -1,5 +1,5 @@
-using FabricExplorerBackend.Application.Connection.Contracts;
 using FabricExplorerBackend.Commons.Paginations;
+using FabricExplorerBackend.Features.Connection.Contracts;
 using FabricExplorerBackend.UnitTests.Features.Connection.Abstraction;
 using Moq;
 using Entities = FabricExplorerBackend.Domain.Entities;

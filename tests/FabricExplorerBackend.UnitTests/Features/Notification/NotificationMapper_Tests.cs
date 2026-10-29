@@ -1,5 +1,6 @@
 using FabricExplorerBackend.Application.Notification;
-using FabricExplorerBackend.Application.Notification.Contracts;
+using FabricExplorerBackend.Features.Notification;
+using FabricExplorerBackend.Features.Notification.Contracts;
 
 namespace FabricExplorerBackend.UnitTests.Features.Notification
 {

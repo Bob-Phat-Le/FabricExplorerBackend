@@ -1,5 +1,5 @@
 ﻿using FabricExplorerBackend.Domain.Entities;
-using FabricExplorerBackend.Infrastructures.Persistences;
+using FabricExplorerBackend.Persistences;
 
 namespace FabricExplorerBackend.IntegrationTests.Fixtures
 {

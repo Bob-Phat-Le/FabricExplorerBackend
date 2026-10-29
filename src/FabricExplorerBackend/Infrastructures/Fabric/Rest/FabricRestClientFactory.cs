@@ -1,5 +1,5 @@
+using FabricExplorerBackend.Configurations.Options;
 using FabricExplorerBackend.Infrastructures.Identity;
-using FabricExplorerBackend.Infrastructures.Options;
 using Microsoft.Extensions.Options;
 
 namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient

@@ -1,4 +1,5 @@
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
+using FabricExplorerBackend.Persistences;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements

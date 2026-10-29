@@ -1,4 +1,4 @@
-using FabricExplorerBackend.Application.Workspace.Contracts;
+using FabricExplorerBackend.Features.Workspace.Contracts;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.UnitTests.Common;
 using FabricExplorerBackend.UnitTests.Features.Workspace.Abstraction;

@@ -1,7 +1,7 @@
-using FabricExplorerBackend.Application.EventStreaming;
-using FabricExplorerBackend.Application.MirroredDatabase;
-using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
-using FabricExplorerBackend.Application.Operation;
+using FabricExplorerBackend.Features.EventStreaming;
+using FabricExplorerBackend.Features.MirroredDatabase;
+using FabricExplorerBackend.Features.MirroredDatabase.Contracts;
+using FabricExplorerBackend.Features.Operation;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;

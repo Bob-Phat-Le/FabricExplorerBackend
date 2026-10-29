@@ -1,5 +1,6 @@
 using FabricExplorerBackend.Domain.Entities;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
+using FabricExplorerBackend.Persistences;
 using Microsoft.EntityFrameworkCore;
 
 namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements

@@ -1,4 +1,4 @@
-using FabricExplorerBackend.Application.Connection;
+using FabricExplorerBackend.Features.Connection;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Client;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;

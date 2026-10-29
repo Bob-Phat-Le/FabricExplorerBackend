@@ -1,8 +1,8 @@
-using FabricExplorerBackend.Application.EventStreaming;
-using FabricExplorerBackend.Application.Lakehouse;
-using FabricExplorerBackend.Application.Lakehouse.Contracts;
-using FabricExplorerBackend.Application.Operation;
+using FabricExplorerBackend.Features.EventStreaming;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
+using FabricExplorerBackend.Features.Lakehouse;
+using FabricExplorerBackend.Features.Lakehouse.Contracts;
+using FabricExplorerBackend.Features.Operation;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;

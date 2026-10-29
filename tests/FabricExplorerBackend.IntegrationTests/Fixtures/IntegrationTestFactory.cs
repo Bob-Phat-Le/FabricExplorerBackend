@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Infrastructures.Persistences;
+﻿using FabricExplorerBackend.Persistences;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

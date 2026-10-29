@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Infrastructures.Options;
+﻿using FabricExplorerBackend.Configurations.Options;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 

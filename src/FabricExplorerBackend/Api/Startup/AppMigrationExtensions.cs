@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Infrastructures.Persistences;
+﻿using FabricExplorerBackend.Persistences;
 using Microsoft.EntityFrameworkCore;
 
 namespace FabricExplorerBackend.Api.Startup

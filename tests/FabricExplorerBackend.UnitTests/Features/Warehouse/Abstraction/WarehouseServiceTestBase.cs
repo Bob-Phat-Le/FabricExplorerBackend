@@ -1,6 +1,6 @@
-using FabricExplorerBackend.Application.EventStreaming;
-using FabricExplorerBackend.Application.Warhouse;
-using FabricExplorerBackend.Application.Warhouse.Contracts;
+using FabricExplorerBackend.Features.EventStreaming;
+using FabricExplorerBackend.Features.Warehouse;
+using FabricExplorerBackend.Features.Warehouse.Contracts;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Options;

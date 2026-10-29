@@ -48,4 +48,21 @@
     <None Include=".ai\notification-task.md" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Api\Controllers\" />
+    <Folder Include="Application\Catalog\" />
+    <Folder Include="Application\Connection\" />
+    <Folder Include="Application\EventStreaming\" />
+    <Folder Include="Application\Lakehouse\" />
+    <Folder Include="Application\MirroredDatabase\" />
+    <Folder Include="Application\Notification\" />
+    <Folder Include="Application\Operation\" />
+    <Folder Include="Application\Warhouse\" />
+    <Folder Include="Application\Workspace\" />
+    <Folder Include="Integrations\" />
+    <Folder Include="Persistences\Configurations\" />
+    <Folder Include="Persistences\Interceptors\" />
+    <Folder Include="Platform\" />
+  </ItemGroup>
+
 </Project>

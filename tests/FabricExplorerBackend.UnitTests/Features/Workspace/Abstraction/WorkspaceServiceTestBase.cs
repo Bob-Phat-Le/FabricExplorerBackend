@@ -1,5 +1,6 @@
 using FabricExplorerBackend.Application.Workspace;
-using FabricExplorerBackend.Application.Workspace.Contracts;
+using FabricExplorerBackend.Features.Workspace;
+using FabricExplorerBackend.Features.Workspace.Contracts;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Options;

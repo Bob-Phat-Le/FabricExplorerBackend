@@ -1,6 +1,6 @@
 using FabricExplorerBackend.Application.Lakehouse.Contracts;
-using FabricExplorerBackend.Application.Operation.Contracts;
 using FabricExplorerBackend.Commons.Results;
+using FabricExplorerBackend.Features.Operation.Contracts;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.UnitTests.Common;
 using FabricExplorerBackend.UnitTests.Features.Lakehouse.Abstraction;

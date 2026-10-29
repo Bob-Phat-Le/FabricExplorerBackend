@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Infrastructures.Options;
+﻿using FabricExplorerBackend.Configurations.Options;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using FabricExplorerBackend.Infrastructures.Workers.Processor;
 using Microsoft.Extensions.Options;

@@ -1,5 +1,5 @@
 using Azure;
-using FabricExplorerBackend.Application.Warhouse.Contracts;
+using FabricExplorerBackend.Features.Warehouse.Contracts;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.UnitTests.Common;
 using FabricExplorerBackend.UnitTests.Features.Warehouse.Abstraction;
