@@ -176,5 +176,21 @@ namespace FabricExplorerBackend.Application.Notification
                 logger.LogError(ex, "Cannot publish notification event to user {UserId}", userId);
             }
         }
+
+        public async Task<Result<ConfirmationResponse>> DeleteNotificationByIdAsync(Guid userId, Guid id, CancellationToken ct = default)
+        {
+            var notification = await unitOfWork.NotificationRepository.GetByIdAsync(id, true, ct);
+            if (notification == null || notification.UserId != userId)
+            {
+                logger.LogWarning("Notification with id {NotificationId} not found for user {UserId}", id, userId);
+                return Error.NotFound(ErrorCodes.Notification.NotFound, "Notification not found");
+            }
+
+            unitOfWork.NotificationRepository.Delete(notification);
+            if (await unitOfWork.SaveChangesAsync() < 0)
+                throw new InvalidOperationException($"Failed to remove notification-{id}");
+
+            return Result<ConfirmationResponse>.Success(new ConfirmationResponse() { Message = $"Remove notification-{id} successfully"});
+        }
     }
 }

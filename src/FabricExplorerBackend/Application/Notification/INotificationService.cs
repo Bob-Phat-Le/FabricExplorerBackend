@@ -26,5 +26,7 @@ namespace FabricExplorerBackend.Application.Notification
         void CloseStream(EventStream stream);
 
         Task PublishAsync(Guid userId, Domain.Entities.Notification? notification = null, CancellationToken cancellationToken = default);
+
+        Task<Result<ConfirmationResponse>> DeleteNotificationByIdAsync(Guid userId, Guid id, CancellationToken ct = default);
     }
 }
