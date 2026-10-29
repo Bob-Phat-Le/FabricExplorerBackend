@@ -14,6 +14,7 @@ namespace FabricExplorerBackend.Application.Catalog.Contracts
         string Name,
         string Type,
         int Position,
+        string PrimaryKey,
         bool Nullable,
         string? Description);
 }

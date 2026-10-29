@@ -6,6 +6,7 @@ namespace FabricExplorerBackend.Infrastructures.OneLake.Dtos
     // and list responses wrapped in an object ({ "schemas": [...] } / { "tables": [...] }).
     // JsonPropertyName is used instead of changing the global serializer options of FabricRestClient.
 
+    // btw: using JsonPropertyName for parameter in a primary constructor require [propery: ]
     public sealed record UnityListSchemasResponse(
         [property: JsonPropertyName("schemas")] IReadOnlyList<UnitySchemaDto>? Schemas,
         [property: JsonPropertyName("next_page_token")] string? NextPageToken);
