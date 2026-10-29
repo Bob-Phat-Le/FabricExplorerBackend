@@ -1,19 +1,16 @@
-﻿using FabricExplorerBackend.Commons.Errors;
+using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Infrastructures.Identity;
-using FabricExplorerBackend.Infrastructures.Options;
-using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
 {
     public class FabricRestClient(
         HttpClient httpClient,
-        IOptions<AzureOptions> azureOptions,
         ITokenService tokenService,
-        Domain.Entities.Connection connection) : IFabricRestClient
+        Domain.Entities.Connection connection,
+        string scope) : IFabricRestClient
     {
         private const int MaxBodyChars = 4000;
-        private AzureOptions azureOptions = azureOptions.Value;
 
         public async Task<TResponse?> GetAsync<TResponse>(string endpoint, CancellationToken cancellationToken = default)
         {
@@ -45,7 +42,7 @@ namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
         private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string endpoint, object? body, CancellationToken ct)
         {
             var operation = $"{method} {endpoint}";
-            var token = await tokenService.GetOrCreateTokenAsync(connection, azureOptions.Scopes.Fabric, ct);
+            var token = await tokenService.GetOrCreateTokenAsync(connection, scope, ct);
 
             using var request = new HttpRequestMessage(method, endpoint)
             {
