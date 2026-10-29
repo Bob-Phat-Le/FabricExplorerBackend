@@ -25,7 +25,7 @@ namespace FabricExplorerBackend.Api.Controllers
         [Produces("text/event-stream")]
         public async Task<IActionResult> StreamAsync(CancellationToken cancellationToken)
         {
-            var opened = await service.OpenStreamAsync(User.GetUserId(), cancellationToken);
+            var opened = await service.OpenStreamAsync(User.GetUserId(), cancellationToken); // [self-comment] This retrieve unread notification in database then append it in an eventStream
             if (!opened.IsSuccess)
                 return Result<object>.Failure(opened.Errors[0]).ToActionResult(this).Result!;
 

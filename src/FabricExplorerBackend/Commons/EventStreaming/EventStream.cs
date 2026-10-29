@@ -32,7 +32,7 @@ namespace FabricExplorerBackend.Commons.EventStreaming
         public bool TryAppend(string name, string data, DateTimeOffset now)
         {
             TaskCompletionSource toWake;
-            lock (gate)
+            lock (gate) // [self-comment] The reader and the producer might run in different thread, so to be save when either reader or producer needs to work with event list, this needs to be locked.
             {
                 if (CompletedAt.HasValue) return false;
                 var isTerminal = name is StreamEventNames.Completed or StreamEventNames.Error;
@@ -44,7 +44,7 @@ namespace FabricExplorerBackend.Commons.EventStreaming
                 toWake = signal;
                 signal = NewSignal();
             }
-            toWake.TrySetResult();
+            toWake.TrySetResult(); // [self-comment] I might need to read again about how the OS work for this. This just tell the awaiter to wakeup (currently in this situation, the reader is the only awaiter)
             return true;
         }
 
@@ -61,7 +61,7 @@ namespace FabricExplorerBackend.Commons.EventStreaming
                 bool completed;
                 Task wait;
 
-                lock (gate)
+                lock (gate) // [self-comment] The reader and the producer might run in different thread, so to be save when either reader or producer needs to work with event list, this needs to be locked.
                 {
                     batch = next < events.Count ? events.GetRange((int)next, events.Count - (int)next).ToArray() : [];
                     completed = CompletedAt.HasValue;
@@ -70,7 +70,7 @@ namespace FabricExplorerBackend.Commons.EventStreaming
 
                 foreach (var item in batch)
                 {
-                    yield return item;
+                    yield return item; // [self-comment] Still, I still don't really understand how 'yield' works. Here is just mean that this function will stop here until the caller need the next item.
                     next = item.Id;
                 }
 

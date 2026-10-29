@@ -147,7 +147,7 @@ namespace FabricExplorerBackend.Application.Notification
             try
             {
                 var unread = await unitOfWork.NotificationRepository.GetUnreadCountAsync(userId, cancellationToken);
-                publisher.Publish(stream.Id, NotificationStreamEvents.UnreadCount, new NotificationStreamEvent(unread, null));
+                publisher.Publish(stream.Id, NotificationStreamEvents.UnreadCount, new NotificationStreamEvent(unread, null)); // [self-comment] This function just tells the eventStream to add all unread notifications into the List<StreamEvent>
             }
             catch
             {
