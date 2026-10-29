@@ -68,5 +68,9 @@ namespace FabricExplorerBackend.Api.Controllers
         [HttpPost("read-all")]
         public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> MarkAllAsReadAsync(CancellationToken cancellationToken = default)
             => (await service.MarkAllAsReadAsync(User.GetUserId(), cancellationToken)).ToActionResult(this);
+
+        [HttpDelete("{id:guid}")]
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> DeleteNotificationAsync(Guid id, CancellationToken ct = default)
+            => (await service.DeleteNotificationByIdAsync(User.GetUserId(), id, ct)).ToActionResult(this);
     }
 }
