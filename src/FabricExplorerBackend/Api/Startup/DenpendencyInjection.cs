@@ -5,6 +5,7 @@ using FabricExplorerBackend.Application.Lakehouse;
 using FabricExplorerBackend.Application.MirroredDatabase;
 using FabricExplorerBackend.Application.Notification;
 using FabricExplorerBackend.Application.Operation;
+using FabricExplorerBackend.Application.QueryService;
 using FabricExplorerBackend.Application.Warhouse;
 using FabricExplorerBackend.Application.Workspace;
 using FabricExplorerBackend.Commons.EventStreaming;
@@ -56,6 +57,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<ICatalogService, CatalogService>();
             services.AddScoped<IDeltaTableApi, DeltaTableApi>();
+            services.AddScoped<IQueryService, QueryService>();
 
             return services;
         }
