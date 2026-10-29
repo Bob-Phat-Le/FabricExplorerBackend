@@ -33,6 +33,7 @@ namespace FabricExplorerBackend.Application.Catalog
                     c.Name,
                     FirstNonEmpty(c.TypeText, c.TypeName) ?? "unknown",
                     c.Position ?? index,
+                    "Unsupported",
                     c.Nullable ?? true,
                     descriptions.TryGetValue(c.Name, out var description)
                         ? description
