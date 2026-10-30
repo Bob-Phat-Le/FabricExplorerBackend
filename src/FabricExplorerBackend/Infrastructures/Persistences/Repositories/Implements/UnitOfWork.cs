@@ -8,7 +8,8 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
         FabricExplorerDbContext context,
         IConnectionRepository connectionRepository,
         IFabricOperationRepository fabricOperationRepository,
-        INotificationRepository notificationRepository) : IUnitOfWork
+        INotificationRepository notificationRepository,
+        IQueryMetadataRepository queryMetadataRepository) : IUnitOfWork
     {
         public async Task CommitTransaction(CancellationToken cancellationToken = default)
         {
@@ -40,5 +41,6 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
         public IUserRepository UserRepository => userRepository;
         public IFabricOperationRepository FabricOperationRepository => fabricOperationRepository;
         public INotificationRepository NotificationRepository => notificationRepository;
+        public IQueryMetadataRepository QueryMetadataRepository => queryMetadataRepository;
     }
 }

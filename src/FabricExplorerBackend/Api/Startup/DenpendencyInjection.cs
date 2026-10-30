@@ -18,6 +18,7 @@ using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
 using FabricExplorerBackend.Infrastructures.Identity;
 using FabricExplorerBackend.Infrastructures.OneLake;
 using FabricExplorerBackend.Infrastructures.Options;
+using FabricExplorerBackend.Infrastructures.QueryResults;
 using FabricExplorerBackend.Infrastructures.Persistences;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implements;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
@@ -58,6 +59,16 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<ICatalogService, CatalogService>();
             services.AddScoped<IDeltaTableApi, DeltaTableApi>();
             services.AddScoped<IQueryService, QueryService>();
+            services.AddScoped<IQueryProcessor, QueryProcessor>();
+            services.AddScoped<IQueryExecutor, FabricQueryExecutor>();
+
+            // Query results: in-memory job queue + stateless Parquet reader/writer + the storage bridge.
+            // Local filesystem today; replace LocalQueryResultStore with a blob implementation later, nothing else changes.
+            services.AddSingleton<IQueryJobQueue, QueryJobQueue>();
+            services.AddSingleton<IQueryResultStore, LocalQueryResultStore>();
+            services.AddSingleton<IQueryResultWriter, ParquetResultWriter>();
+            services.AddSingleton<IQueryResultReader, ParquetResultReader>();
+            services.AddScoped<IQueryResultCleanupService, QueryResultCleanupService>();
 
             return services;
         }
@@ -75,6 +86,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IFabricOperationRepository, FabricOperationRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
+            services.AddScoped<IQueryMetadataRepository, QueryMetadataRepository>();
 
             // Event streaming (SSE): registry in-memory shared globally for the whole app so must be singleton
             services.TryAddSingleton(TimeProvider.System);
@@ -85,6 +97,8 @@ namespace FabricExplorerBackend.Api.Startup
             // Background Worker
             services.AddScoped<IFabricOperationProcessor, FabricOperationProcessor>();
             services.AddHostedService<FabricOperationPollingService>();
+            services.AddHostedService<QueryExecutionService>();
+            services.AddHostedService<QueryResultCleanupWorker>();
 
             return services;
         }
@@ -156,6 +170,8 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddOptions<OperationPollingOptions>().BindConfiguration(OperationPollingOptions.SectionName);
             services.AddOptions<EventStreamingOptions>().BindConfiguration(EventStreamingOptions.SectionName);
             services.AddOptions<CatalogOptions>().BindConfiguration(CatalogOptions.SectionName);
+            services.AddOptions<QueryOptions>().BindConfiguration(QueryOptions.SectionName);
+            services.AddOptions<QueryResultStorageOptions>().BindConfiguration(QueryResultStorageOptions.SectionName);
 
             return services;
         }

@@ -9,6 +9,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
         public DbSet<Connection> Connections { get; set; }
         public DbSet<FabricOperation> Operations { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<QueryMetadata> Queries { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -70,6 +71,32 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
                     .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasIndex(noti => new { noti.UserId, noti.CreatedAt });
+            });
+
+            modelBuilder.Entity<QueryMetadata>(entity =>
+            {
+                entity.HasKey(q => q.Id);
+
+                entity.Property(q => q.Sql)
+                    .IsRequired();
+
+                entity.Property(q => q.Error)
+                    .HasMaxLength(QueryMetadata.ErrorMaxLength);
+
+                entity.HasOne(q => q.User)
+                    .WithMany()
+                    .HasForeignKey(q => q.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(q => q.Connection)
+                    .WithMany()
+                    .HasForeignKey(q => q.ConnectionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // "my queries" listing
+                entity.HasIndex(q => new { q.UserId, q.CreatedAt });
+                // expiry cleanup
+                entity.HasIndex(q => new { q.Status, q.ExpiresAt });
             });
 
             modelBuilder.SeedData();

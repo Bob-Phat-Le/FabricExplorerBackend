@@ -13,5 +13,6 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interf
         IUserRepository UserRepository { get; }
         IFabricOperationRepository FabricOperationRepository { get; }
         INotificationRepository NotificationRepository { get; }
+        IQueryMetadataRepository QueryMetadataRepository { get; }
     }
 }
