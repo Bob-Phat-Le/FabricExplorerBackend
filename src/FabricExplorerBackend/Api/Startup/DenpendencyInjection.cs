@@ -10,6 +10,7 @@ using FabricExplorerBackend.Application.Warhouse;
 using FabricExplorerBackend.Application.Workspace;
 using FabricExplorerBackend.Commons.EventStreaming;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
+using FabricExplorerBackend.Infrastructures.AzureClient;
 using FabricExplorerBackend.Infrastructures.BackgroundJobs;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Client;
@@ -58,6 +59,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<ICatalogService, CatalogService>();
             services.AddScoped<IDeltaTableApi, DeltaTableApi>();
             services.AddScoped<IQueryService, QueryService>();
+            services.AddScoped<IAzureClientFactory, AzureClientFactory>();
 
             return services;
         }

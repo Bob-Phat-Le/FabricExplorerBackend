@@ -2,6 +2,7 @@
 using FabricExplorerBackend.Api.Extensions;
 using FabricExplorerBackend.Application.MirroredDatabase;
 using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
+using FabricExplorerBackend.Commons.Contracts;
 using FabricExplorerBackend.Commons.EventStreaming;
 using Microsoft.AspNetCore.Mvc;
 
@@ -57,5 +58,32 @@ namespace FabricExplorerBackend.Api.Controllers
             Guid mirroredDatabaseId,
             CancellationToken cancellationToken)
             => (await mirroredDatabaseService.StopMirroringAsync(connectionId, workspaceId, mirroredDatabaseId, cancellationToken)).ToActionResult(this);
+
+        [HttpGet("{mirroredDatabaseId:guid}/landing-zones/{*path}")]
+        [HttpGet("{mirroredDatabaseId:guid}/landing-zones")]
+        public async Task<ActionResult<ApiResponse<LandingZoneListResponse>>> ListObjectsInLandingZoneAsync(
+            [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
+            Guid workspaceId,
+            Guid mirroredDatabaseId,
+            string? path,
+            [FromQuery] LandingZoneRequestQuery query,
+            CancellationToken cancellationToken)
+            => (await mirroredDatabaseService.ListObjectsInLandingZoneAsync(connectionId, workspaceId, mirroredDatabaseId, path, query, cancellationToken)).ToActionResult(this);
+
+        [HttpPut("{mirroredDatabaseId:guid}/landing-zones/{*path}")]
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> CreateFolderAsync([FromHeader(Name = "X-Connection-Id")] Guid connectionId,
+            Guid workspaceId,
+            Guid mirroredDatabaseId,
+            string? path,
+            CancellationToken cancellationToken)
+            => (await mirroredDatabaseService.CreateFolderAsync(connectionId, workspaceId, mirroredDatabaseId, path, cancellationToken)).ToActionResult(this);
+
+        [HttpDelete("{mirroredDatabaseId:guid}/landing-zones/{*path}")]
+        public async Task<ActionResult<ApiResponse<ConfirmationResponse>>> DeleteFolderAsync([FromHeader(Name = "X-Connection-Id")] Guid connectionId,
+            Guid workspaceId,
+            Guid mirroredDatabaseId,
+            string? path,
+            CancellationToken cancellationToken)
+            => (await mirroredDatabaseService.DeleteFolderAsync(connectionId, workspaceId, mirroredDatabaseId, path, cancellationToken)).ToActionResult(this);
     }
 }

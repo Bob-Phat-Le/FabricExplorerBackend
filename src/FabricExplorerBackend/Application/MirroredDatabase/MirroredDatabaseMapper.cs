@@ -1,4 +1,6 @@
-﻿using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
+﻿using Azure.Storage.Files.DataLake.Models;
+using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
+using System.Globalization;
 using FabricModel = Microsoft.Fabric.Api.MirroredDatabase.Models;
 
 namespace FabricExplorerBackend.Application.MirroredDatabase
@@ -78,5 +80,22 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
 
         private static string Qualify(string? schema, string table)
             => string.IsNullOrWhiteSpace(schema) ? table : $"{schema}.{table}";
+
+        public LandingZoneItemResponse ToLandingZoneItemResponse(LandingZoneItem item)
+        {
+            return new LandingZoneItemResponse
+            {
+                Name = item.Name,
+                IsDirectory = bool.Parse(item.IsDirectory ?? "false"),
+                CreationTime = DateTimeOffset.FromFileTime(long.Parse(item.CreationTime, CultureInfo.InvariantCulture)),
+                LastModified = DateTimeOffset.Parse(item.LastModified, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal),
+                Etag = item.Etag,
+                ContentLength = long.Parse(item.ContentLength, CultureInfo.InvariantCulture),
+                Owner = item.Owner,
+                Group = item.Group,
+                Permissions = item.Permissions,
+                ExpireTime = item.ExpiryTime == "0" ? null : DateTimeOffset.FromFileTime(long.Parse(item.ExpiryTime, CultureInfo.InvariantCulture)),
+            };
+        }
     }
 }

@@ -38,6 +38,11 @@ namespace FabricExplorerBackend.Commons.Errors
             public const string RequestFailed = "fabric.request_failed";
             public const string Unavailable = "fabric.unavailable";
             public const string Conflict = "fabric.conflict";
+
+            public static class LandingZone
+            {
+                public const string BadRequest = "fabric.landing_zone.bad_request";
+            }
         }
         public static class EventStream
         {

@@ -1,4 +1,5 @@
-﻿using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
+﻿using Azure.Storage.Files.DataLake.Models;
+using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
 using FabricModel = Microsoft.Fabric.Api.MirroredDatabase.Models;
 
 namespace FabricExplorerBackend.Application.MirroredDatabase
@@ -23,5 +24,6 @@ namespace FabricExplorerBackend.Application.MirroredDatabase
             int? lagInSeconds,
             long processedRows,
             MirroringDefinitionInfo? definition);
+        LandingZoneItemResponse ToLandingZoneItemResponse(LandingZoneItem item);
     }
 }

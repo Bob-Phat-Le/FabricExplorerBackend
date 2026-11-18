@@ -5,17 +5,21 @@ using FabricExplorerBackend.Application.Operation;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.EventStreaming;
 using FabricExplorerBackend.Commons.Results;
+using FabricExplorerBackend.Infrastructures.AzureClient;
 using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
+using FabricExplorerBackend.Infrastructures.Identity;
 using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using Microsoft.Extensions.Options;
 
 namespace FabricExplorerBackend.Application.MirroredDatabase
 {
-    public class MirroredDatabaseService(
+    public partial class MirroredDatabaseService(
+        IAzureClientFactory azureClientFactory,
+        ITokenService tokenService,
         IMirroredDatabaseMapper mapper,
         IFabricContextFactory fabricContextFactory,
         IFabricRestClientFactory fabricRestClientFactory,
