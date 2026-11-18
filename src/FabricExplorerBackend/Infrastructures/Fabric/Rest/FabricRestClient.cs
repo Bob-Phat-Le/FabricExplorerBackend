@@ -32,6 +32,17 @@ namespace FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient
             return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
         }
 
+        public async Task<TResponse?> PutAsync<TRequest, TResponse>(string endpoint, TRequest request, CancellationToken cancellationToken = default)
+        {
+            using var response = await SendAsync(HttpMethod.Put, endpoint, request, cancellationToken);
+            return await response.Content.ReadFromJsonAsync<TResponse>(cancellationToken);
+        }
+
+        public async Task PutAsync(string endpoint, CancellationToken cancellationToken = default)
+        {
+            using var response = await SendAsync(HttpMethod.Put, endpoint, null, cancellationToken);
+        }
+
         public async Task DeleteAsync(string endpoint, CancellationToken cancellationToken = default)
         {
             using var response = await SendAsync(HttpMethod.Delete, endpoint, null, cancellationToken);
