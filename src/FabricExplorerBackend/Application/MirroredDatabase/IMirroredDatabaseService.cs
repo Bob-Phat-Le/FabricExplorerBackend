@@ -1,5 +1,5 @@
-﻿using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
-using FabricExplorerBackend.Application.EventStreaming;
+﻿using FabricExplorerBackend.Application.EventStreaming;
+using FabricExplorerBackend.Application.MirroredDatabase.Contracts;
 using FabricExplorerBackend.Commons.EventStreaming;
 using FabricExplorerBackend.Commons.Results;
 
