@@ -163,6 +163,87 @@ namespace FabricExplorerBackend.Migrations
                     b.ToTable("Operations");
                 });
 
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.LandingZoneConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileSystem")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("RootPath")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("StorageEndpoint")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionId")
+                        .IsUnique();
+
+                    b.ToTable("LandingZoneConfigs");
+                });
+
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.LandingZoneOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Item")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionId", "CreatedAt");
+
+                    b.ToTable("LandingZoneOperations");
+                });
+
             modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.Notification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -252,6 +333,24 @@ namespace FabricExplorerBackend.Migrations
                             Email = "john.doe@company.com",
                             UserName = "John Doe"
                         });
+                });
+
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.LandingZoneConfig", b =>
+                {
+                    b.HasOne("FabricExplorerBackend.Domain.Entities.Connection", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.LandingZoneOperation", b =>
+                {
+                    b.HasOne("FabricExplorerBackend.Domain.Entities.Connection", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.Notification", b =>

@@ -54,6 +54,15 @@ namespace FabricExplorerBackend.Commons.Errors
             public const string BadRequest = "catalog.bad_request";
             public const string TableNotFound = "catalog.table_not_found";
         }
+        public static class LandingZone
+        {
+            public const string NotConfigured = "landing_zone.not_configured";
+            public const string BadRequest = "landing_zone.bad_request";
+            public const string InvalidPath = "landing_zone.invalid_path";
+            public const string PathNotFound = "landing_zone.path_not_found";
+            public const string AlreadyExists = "landing_zone.already_exists";
+            public const string UnsupportedEndpoint = "landing_zone.unsupported_endpoint";
+        }
         public static class Sql { public const string QueryFailed = "sql.query_failed"; }
         public static class Cache { public const string Unavailable = "cache.unavailable"; }
         public static class Upstream { public const string Timeout = "upstream.timeout"; }

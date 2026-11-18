@@ -7,7 +7,6 @@ using FabricExplorerBackend.Commons.EventStreaming;
 using FabricExplorerBackend.Commons.Paginations;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Fabric.Dtos;
-using System.ClientModel;
 
 namespace FabricExplorerBackend.Features.Fabric.Lakehouse
 {

@@ -2,6 +2,7 @@ using FabricExplorerBackend.Application.Catalog;
 using FabricExplorerBackend.Application.Connection;
 using FabricExplorerBackend.Application.EventStreaming;
 using FabricExplorerBackend.Application.Lakehouse;
+using FabricExplorerBackend.Application.LandingZone;
 using FabricExplorerBackend.Application.MirroredDatabase;
 using FabricExplorerBackend.Application.Notification;
 using FabricExplorerBackend.Application.Operation;
@@ -16,6 +17,7 @@ using FabricExplorerBackend.Infrastructures.Fabric.Client;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
 using FabricExplorerBackend.Infrastructures.Identity;
+using FabricExplorerBackend.Infrastructures.LandingZone;
 using FabricExplorerBackend.Infrastructures.OneLake;
 using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences;
@@ -58,6 +60,8 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<ICatalogService, CatalogService>();
             services.AddScoped<IDeltaTableApi, DeltaTableApi>();
             services.AddScoped<IQueryService, QueryService>();
+            services.AddScoped<ILandingZoneService, LandingZoneService>();
+            services.AddScoped<ILandingZoneStorage, LandingZoneStorage>();
 
             return services;
         }
@@ -75,6 +79,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IFabricOperationRepository, FabricOperationRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
+            services.AddScoped<ILandingZoneRepository, LandingZoneRepository>();
 
             // Event streaming (SSE): registry in-memory shared globally for the whole app so must be singleton
             services.TryAddSingleton(TimeProvider.System);
@@ -156,6 +161,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddOptions<OperationPollingOptions>().BindConfiguration(OperationPollingOptions.SectionName);
             services.AddOptions<EventStreamingOptions>().BindConfiguration(EventStreamingOptions.SectionName);
             services.AddOptions<CatalogOptions>().BindConfiguration(CatalogOptions.SectionName);
+            services.AddOptions<LandingZoneOptions>().BindConfiguration(LandingZoneOptions.SectionName);
 
             return services;
         }

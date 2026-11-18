@@ -1,6 +1,5 @@
 ﻿using FabricExplorerBackend.Application.QueryService;
 using FabricExplorerBackend.Application.QueryService.Contracts;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FabricExplorerBackend.Api.Controllers

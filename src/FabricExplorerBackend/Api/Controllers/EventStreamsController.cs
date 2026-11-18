@@ -1,6 +1,5 @@
 using FabricExplorerBackend.Api.Extensions;
 using FabricExplorerBackend.Application.EventStreaming;
-using FabricExplorerBackend.Commons.EventStreaming;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.Options;
 using Microsoft.AspNetCore.Mvc;

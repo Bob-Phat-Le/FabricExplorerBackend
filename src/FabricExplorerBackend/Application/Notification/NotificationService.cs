@@ -190,7 +190,7 @@ namespace FabricExplorerBackend.Application.Notification
             if (await unitOfWork.SaveChangesAsync() < 0)
                 throw new InvalidOperationException($"Failed to remove notification-{id}");
 
-            return Result<ConfirmationResponse>.Success(new ConfirmationResponse() { Message = $"Remove notification-{id} successfully"});
+            return Result<ConfirmationResponse>.Success(new ConfirmationResponse() { Message = $"Remove notification-{id} successfully" });
         }
     }
 }

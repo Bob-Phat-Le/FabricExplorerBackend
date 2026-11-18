@@ -9,6 +9,8 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
         public DbSet<Connection> Connections { get; set; }
         public DbSet<FabricOperation> Operations { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<LandingZoneConfig> LandingZoneConfigs { get; set; }
+        public DbSet<LandingZoneOperation> LandingZoneOperations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -70,6 +72,48 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
                     .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasIndex(noti => new { noti.UserId, noti.CreatedAt });
+            });
+
+            modelBuilder.Entity<LandingZoneConfig>(entity =>
+            {
+                entity.HasKey(c => c.Id);
+
+                entity.Property(c => c.StorageEndpoint)
+                    .IsRequired()
+                    .HasMaxLength(LandingZoneConfig.EndpointMaxLength);
+
+                entity.Property(c => c.FileSystem)
+                    .IsRequired()
+                    .HasMaxLength(LandingZoneConfig.FileSystemMaxLength);
+
+                entity.Property(c => c.RootPath)
+                    .IsRequired()
+                    .HasMaxLength(LandingZoneConfig.RootPathMaxLength);
+
+                // One Landing Zone per connection.
+                entity.HasIndex(c => c.ConnectionId).IsUnique();
+
+                entity.HasOne<Connection>()
+                    .WithMany()
+                    .HasForeignKey(c => c.ConnectionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+            modelBuilder.Entity<LandingZoneOperation>(entity =>
+            {
+                entity.HasKey(o => o.Id);
+
+                entity.Property(o => o.Operation).IsRequired().HasMaxLength(LandingZoneOperation.OperationMaxLength);
+                entity.Property(o => o.Item).IsRequired().HasMaxLength(LandingZoneOperation.ItemMaxLength);
+                entity.Property(o => o.Path).IsRequired().HasMaxLength(LandingZoneOperation.PathMaxLength);
+                entity.Property(o => o.Status).IsRequired().HasMaxLength(LandingZoneOperation.StatusMaxLength);
+                entity.Property(o => o.Details).HasMaxLength(LandingZoneOperation.DetailsMaxLength);
+
+                entity.HasIndex(o => new { o.ConnectionId, o.CreatedAt });
+
+                entity.HasOne<Connection>()
+                    .WithMany()
+                    .HasForeignKey(o => o.ConnectionId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.SeedData();
