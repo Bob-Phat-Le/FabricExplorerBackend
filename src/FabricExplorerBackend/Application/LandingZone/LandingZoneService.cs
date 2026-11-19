@@ -1,5 +1,5 @@
 ﻿using Azure;
-using FabricExplorerBackend.Application.LandingZone.Contracts;
+using FabricExplorerBackend.Application.LandingZone.Contracts.Explorers;
 using FabricExplorerBackend.Commons.Contracts;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
@@ -11,11 +11,10 @@ using FabricExplorerBackend.Infrastructures.LandingZone;
 using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using Microsoft.Extensions.Options;
-using System.IO.Compression;
 
 namespace FabricExplorerBackend.Application.LandingZone
 {
-    public sealed class LandingZoneService(
+    public partial class LandingZoneService(
         IHelpersFactory helpersFactory,
         ILogger<LandingZoneService> logger,
         IUnitOfWork unitOfWork,

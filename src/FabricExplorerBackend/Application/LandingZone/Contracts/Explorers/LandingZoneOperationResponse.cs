@@ -1,4 +1,4 @@
-﻿namespace FabricExplorerBackend.Application.LandingZone.Contracts
+﻿namespace FabricExplorerBackend.Application.LandingZone.Contracts.Explorers
 {
     public sealed record LandingZoneOperationResponse(
         Guid Id,

@@ -1,5 +1,5 @@
 ﻿using Azure;
-using FabricExplorerBackend.Application.LandingZone.Contracts;
+using FabricExplorerBackend.Application.LandingZone.Contracts.Explorers;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Domain.Entities;

@@ -1,7 +1,7 @@
 ﻿using FabricExplorerBackend.Api.Contracts;
 using FabricExplorerBackend.Api.Extensions;
 using FabricExplorerBackend.Application.LandingZone;
-using FabricExplorerBackend.Application.LandingZone.Contracts;
+using FabricExplorerBackend.Application.LandingZone.Contracts.Explorers;
 using FabricExplorerBackend.Commons.Contracts;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +13,7 @@ namespace FabricExplorerBackend.Api.Controllers
     /// </summary>
     [Route("api/landing-zone")]
     [ApiController]
-    public class LandingZoneController(ILandingZoneService landingZoneService) : ControllerBase
+    public partial class LandingZoneController(ILandingZoneService landingZoneService) : ControllerBase
     {
         private const long MaxUploadBytes = 2L * 1024 * 1024 * 1024;
 
