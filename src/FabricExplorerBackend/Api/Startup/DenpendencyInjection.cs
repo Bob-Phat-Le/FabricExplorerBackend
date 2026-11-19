@@ -16,6 +16,8 @@ using FabricExplorerBackend.Infrastructures.Cache;
 using FabricExplorerBackend.Infrastructures.Fabric.Client;
 using FabricExplorerBackend.Infrastructures.Fabric.Context;
 using FabricExplorerBackend.Infrastructures.Fabric.FabricRestClient;
+using FabricExplorerBackend.Infrastructures.Helpers.Factories;
+using FabricExplorerBackend.Infrastructures.Helpers.HelperConcretes.LandingZone;
 using FabricExplorerBackend.Infrastructures.Identity;
 using FabricExplorerBackend.Infrastructures.LandingZone;
 using FabricExplorerBackend.Infrastructures.OneLake;
@@ -62,6 +64,8 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<IQueryService, QueryService>();
             services.AddScoped<ILandingZoneService, LandingZoneService>();
             services.AddScoped<ILandingZoneStorage, LandingZoneStorage>();
+            services.AddScoped<IHelpersFactory, HelpersFactory>();
+            services.AddScoped<ILandingZoneHelper, LandingZoneHelper>();
 
             return services;
         }

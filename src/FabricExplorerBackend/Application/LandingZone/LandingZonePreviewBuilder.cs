@@ -199,6 +199,7 @@ namespace FabricExplorerBackend.Application.LandingZone
 
         private static string Decode(byte[] bytes)
         {
+            // these if is to detect BOM (Byte Order Mark) for UTF-8, UTF-16 LE, and UTF-16 BE encodings
             if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
                 return Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
             if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)

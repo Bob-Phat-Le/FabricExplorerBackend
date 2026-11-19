@@ -4,6 +4,9 @@ using FabricExplorerBackend.Commons.Contracts;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Domain.Entities;
+using FabricExplorerBackend.Infrastructures.Helpers;
+using FabricExplorerBackend.Infrastructures.Helpers.Factories;
+using FabricExplorerBackend.Infrastructures.Helpers.HelperConcretes.LandingZone;
 using FabricExplorerBackend.Infrastructures.LandingZone;
 using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
@@ -13,6 +16,7 @@ using System.IO.Compression;
 namespace FabricExplorerBackend.Application.LandingZone
 {
     public sealed class LandingZoneService(
+        IHelpersFactory helpersFactory,
         ILogger<LandingZoneService> logger,
         IUnitOfWork unitOfWork,
         ILandingZoneStorage storage,
@@ -20,10 +24,7 @@ namespace FabricExplorerBackend.Application.LandingZone
         TimeProvider timeProvider) : ILandingZoneService
     {
         private readonly LandingZoneOptions options = landingZoneOptions.Value;
-        private sealed record Session(
-            Domain.Entities.Connection Connection,
-            LandingZoneLocation Location,
-            ILandingZoneFileSystem FileSystem);
+        private readonly ILandingZoneHelper landingZoneHelper = helpersFactory.GetHelper<ILandingZoneHelper>(HelperNames.LandingZoneHelper);
 
         public async Task<Result<LandingZoneConfigResponse>> GetConfigAsync(Guid connectionId, CancellationToken cancellationToken = default)
         {
@@ -48,7 +49,7 @@ namespace FabricExplorerBackend.Application.LandingZone
             if (connection is null)
                 return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
 
-            var parsed = BuildLocation(connection, request);
+            var parsed = landingZoneHelper.BuildLocation(connection, request);
             if (!parsed.IsSuccess)
                 return Result<LandingZoneConfigResponse>.Failure(parsed.Errors.ToArray());
 
@@ -125,7 +126,7 @@ namespace FabricExplorerBackend.Application.LandingZone
 
         public async Task<Result<LandingZoneListResponse>> ListItemsAsync(Guid connectionId, string? path, CancellationToken cancellationToken = default)
         {
-            var opened = await OpenAsync(connectionId, cancellationToken);
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
             if (!opened.IsSuccess) return Result<LandingZoneListResponse>.Failure(opened.Errors.ToArray());
 
             var folder = LandingZonePaths.Normalize(path);
@@ -155,7 +156,7 @@ namespace FabricExplorerBackend.Application.LandingZone
 
         public async Task<Result<LandingZoneFoldersResponse>> ListFoldersAsync(Guid connectionId, string? path, CancellationToken cancellationToken = default)
         {
-            var opened = await OpenAsync(connectionId, cancellationToken);
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
             if (!opened.IsSuccess) return Result<LandingZoneFoldersResponse>.Failure(opened.Errors.ToArray());
 
             var folder = LandingZonePaths.Normalize(path);
@@ -187,7 +188,7 @@ namespace FabricExplorerBackend.Application.LandingZone
             if (string.IsNullOrEmpty(term))
                 return Error.BadRequest(ErrorCodes.LandingZone.BadRequest, "Search text is required.");
 
-            var opened = await OpenAsync(connectionId, cancellationToken);
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
             if (!opened.IsSuccess) return Result<LandingZoneListResponse>.Failure(opened.Errors.ToArray());
 
             var folder = LandingZonePaths.Normalize(path);
@@ -219,7 +220,7 @@ namespace FabricExplorerBackend.Application.LandingZone
 
         public async Task<Result<LandingZoneFileDetailsResponse>> GetFileDetailsAsync(Guid connectionId, string? path, CancellationToken cancellationToken = default)
         {
-            var opened = await OpenAsync(connectionId, cancellationToken);
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
             if (!opened.IsSuccess)
                 return Result<LandingZoneFileDetailsResponse>.Failure(opened.Errors.ToArray());
 
@@ -255,7 +256,7 @@ namespace FabricExplorerBackend.Application.LandingZone
 
         public async Task<Result<LandingZonePreviewResponse>> GetPreviewAsync(Guid connectionId, string? path, CancellationToken cancellationToken = default)
         {
-            var opened = await OpenAsync(connectionId, cancellationToken);
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
             if (!opened.IsSuccess)
                 return Result<LandingZonePreviewResponse>.Failure(opened.Errors.ToArray());
 
@@ -289,7 +290,7 @@ namespace FabricExplorerBackend.Application.LandingZone
 
         public async Task<Result<LandingZoneDownload>> DownloadFileAsync(Guid connectionId, string? path, CancellationToken cancellationToken = default)
         {
-            var opened = await OpenAsync(connectionId, cancellationToken);
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
             if (!opened.IsSuccess)
                 return Result<LandingZoneDownload>.Failure(opened.Errors.ToArray());
 
@@ -317,8 +318,7 @@ namespace FabricExplorerBackend.Application.LandingZone
             return Result<LandingZoneDownload>.Success(new LandingZoneDownload(content, name, LandingZoneContentTypes.FromFileName(name)));
         }
 
-        public async Task<Result<LandingZoneDownload>> DownloadArchiveAsync(
-            Guid connectionId, DownloadArchiveRequest request, CancellationToken cancellationToken = default)
+        public async Task<Result<LandingZoneDownload>> DownloadArchiveAsync(Guid connectionId, DownloadArchiveRequest request, CancellationToken cancellationToken = default)
         {
             var paths = (request.Paths ?? [])
                 .Select(LandingZonePaths.Normalize)
@@ -329,68 +329,14 @@ namespace FabricExplorerBackend.Application.LandingZone
             if (paths.Count == 0)
                 return Error.BadRequest(ErrorCodes.LandingZone.BadRequest, "Select at least one file to download.");
 
-            if (paths.Count > options.MaxArchiveFiles)
-                return Error.BadRequest(ErrorCodes.LandingZone.BadRequest, $"At most {options.MaxArchiveFiles} files can be downloaded at once.");
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
+            if (!opened.IsSuccess)
+                return Result<LandingZoneDownload>.Failure(opened.Errors.ToArray());
 
-            var opened = await OpenAsync(connectionId, cancellationToken);
-            if (!opened.IsSuccess) return Result<LandingZoneDownload>.Failure(opened.Errors.ToArray());
-
-            var fileSystem = opened.Data!.FileSystem;
-
-            var archive = new FileStream(
-                System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"landing-zone-{Guid.NewGuid():N}.zip"),
-                FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 81920,
-                FileOptions.DeleteOnClose | FileOptions.Asynchronous);
-
-            try
-            {
-                var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                using (var zip = new ZipArchive(archive, ZipArchiveMode.Create, leaveOpen: true))
-                {
-                    foreach (var file in paths)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        var name = LandingZonePaths.NameOf(file);
-                        var entryName = name;
-
-                        if (!usedNames.Add(entryName))
-                        {
-                            var stem = System.IO.Path.GetFileNameWithoutExtension(name);
-                            var extension = System.IO.Path.GetExtension(name);
-
-                            for (var i = 2; ; i++)
-                            {
-                                entryName = $"{stem} ({i}){extension}";
-                                if (usedNames.Add(entryName))
-                                    break;
-                            }
-                        }
-
-                        var entry = zip.CreateEntry(entryName, CompressionLevel.Fastest);
-
-                        await using var target = entry.Open();
-                        await using var source = await fileSystem.OpenReadAsync(file, cancellationToken);
-                        await source.CopyToAsync(target, cancellationToken);
-                    }
-                }
-
-                archive.Position = 0;
-            }
-            catch (RequestFailedException ex) when (ex.Status == 404)
-            {
-                await archive.DisposeAsync();
-                return Error.NotFound(ErrorCodes.LandingZone.PathNotFound, "One of the selected files was not found.");
-            }
-            catch
-            {
-                await archive.DisposeAsync();
-                throw;
-            }
+            var archive = await landingZoneHelper.CreateArchiveAsync(opened.Data!, paths, cancellationToken);
 
             await FlushLogAsync(connectionId, [
-                NewLog(connectionId, "Download", $"{paths.Count} files (zip)", string.Empty, true, $"{paths.Count} files archived and downloaded")
+                NewLog(connectionId, "Download", $"{paths.Count} paths (zip)", string.Empty, true, "Archive created successfully")
             ]);
 
             return Result<LandingZoneDownload>.Success(
@@ -407,13 +353,13 @@ namespace FabricExplorerBackend.Application.LandingZone
             if (files.Count > options.MaxBatchItems)
                 return Error.BadRequest(ErrorCodes.LandingZone.BadRequest, $"At most {options.MaxBatchItems} files can be uploaded at once.");
 
-            var opened = await OpenAsync(connectionId, cancellationToken);
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
             if (!opened.IsSuccess) return Result<LandingZoneBatchResponse>.Failure(opened.Errors.ToArray());
 
             var session = opened.Data!;
             var destination = LandingZonePaths.Normalize(path);
 
-            var missing = await EnsureFolderExistsAsync(session, destination, cancellationToken);
+            var missing = await landingZoneHelper.EnsureFolderExistsAsync(session, destination, cancellationToken);
             if (missing is not null) return missing;
 
             var log = new List<LandingZoneOperation>();
@@ -467,7 +413,7 @@ namespace FabricExplorerBackend.Application.LandingZone
         public async Task<Result<LandingZoneItemResponse>> CreateFolderAsync(
             Guid connectionId, CreateFolderRequest request, CancellationToken cancellationToken = default)
         {
-            var opened = await OpenAsync(connectionId, cancellationToken);
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
             if (!opened.IsSuccess) return Result<LandingZoneItemResponse>.Failure(opened.Errors.ToArray());
 
             var session = opened.Data!;
@@ -475,7 +421,7 @@ namespace FabricExplorerBackend.Application.LandingZone
             var name = LandingZonePaths.ValidateName(request.Name);
             var path = LandingZonePaths.Combine(parent, name);
 
-            var missing = await EnsureFolderExistsAsync(session, parent, cancellationToken);
+            var missing = await landingZoneHelper.EnsureFolderExistsAsync(session, parent, cancellationToken);
             if (missing is not null) return missing;
 
             if (await session.FileSystem.ExistsAsync(path, cancellationToken))
@@ -517,7 +463,7 @@ namespace FabricExplorerBackend.Application.LandingZone
         public async Task<Result<LandingZoneItemResponse>> RenameAsync(
             Guid connectionId, RenameItemRequest request, CancellationToken cancellationToken = default)
         {
-            var opened = await OpenAsync(connectionId, cancellationToken);
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
             if (!opened.IsSuccess)
                 return Result<LandingZoneItemResponse>.Failure(opened.Errors.ToArray());
 
@@ -601,13 +547,13 @@ namespace FabricExplorerBackend.Application.LandingZone
             if (request.Items.Count > options.MaxBatchItems)
                 return Error.BadRequest(ErrorCodes.LandingZone.BadRequest, $"At most {options.MaxBatchItems} items can be processed at once.");
 
-            var opened = await OpenAsync(connectionId, cancellationToken);
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
             if (!opened.IsSuccess) return Result<LandingZoneBatchResponse>.Failure(opened.Errors.ToArray());
 
             var session = opened.Data!;
             var destination = LandingZonePaths.Normalize(request.DestinationPath);
 
-            var missing = await EnsureFolderExistsAsync(session, destination, cancellationToken);
+            var missing = await landingZoneHelper.EnsureFolderExistsAsync(session, destination, cancellationToken);
             if (missing is not null) return missing;
 
             var operation = move ? "Move" : "Copy";
@@ -672,7 +618,7 @@ namespace FabricExplorerBackend.Application.LandingZone
             if (request.Items.Count > options.MaxBatchItems)
                 return Error.BadRequest(ErrorCodes.LandingZone.BadRequest, $"At most {options.MaxBatchItems} items can be processed at once.");
 
-            var opened = await OpenAsync(connectionId, cancellationToken);
+            var opened = await landingZoneHelper.OpenAsync(connectionId, cancellationToken);
             if (!opened.IsSuccess)
                 return Result<LandingZoneBatchResponse>.Failure(opened.Errors.ToArray());
 
@@ -745,34 +691,6 @@ namespace FabricExplorerBackend.Application.LandingZone
         // Helpers
         // =====================================================================
 
-        private async Task<Result<Session>> OpenAsync(Guid connectionId, CancellationToken cancellationToken)
-        {
-            var connection = await unitOfWork.ConnectionRepository.GetByIdAsync(connectionId, cancellationToken: cancellationToken);
-            if (connection is null)
-                return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
-
-            var config = await unitOfWork.LandingZoneRepository.GetConfigAsync(connectionId, cancellationToken: cancellationToken);
-            if (config is null)
-                return Error.Conflict(ErrorCodes.LandingZone.NotConfigured, "Landing Zone is not configured for this connection.");
-
-            var location = new LandingZoneLocation(new Uri(config.StorageEndpoint), config.FileSystem, config.RootPath);
-            return Result<Session>.Success(new Session(connection, location, storage.Open(connection, location)));
-        }
-
-        private static async Task<Error?> EnsureFolderExistsAsync(Session session, string folder, CancellationToken cancellationToken)
-        {
-            if (folder.Length == 0) return null;
-
-            try
-            {
-                return await session.FileSystem.ExistsAsync(folder, cancellationToken) ? null : Error.NotFound(ErrorCodes.LandingZone.PathNotFound, $"Folder '{LandingZonePaths.Display(folder)}' was not found.");
-            }
-            catch (RequestFailedException ex) when (ex.Status == 404)
-            {
-                return Error.NotFound(ErrorCodes.LandingZone.PathNotFound, $"Folder '{LandingZonePaths.Display(folder)}' was not found.");
-            }
-        }
-
         private async Task<LandingZoneItemResult> RunItemAsync(
             Guid connectionId, List<LandingZoneOperation> log, string operation, string itemName, string logFolder,
             string resultPath, Func<Task<string>> action)
@@ -818,79 +736,6 @@ namespace FabricExplorerBackend.Application.LandingZone
             {
                 logger.LogWarning(ex, "Could not record Landing Zone operations of connection {ConnectionId}", connectionId);
             }
-        }
-
-        private Result<LandingZoneLocation> BuildLocation(Domain.Entities.Connection connection, ConfigureLandingZoneRequest request)
-        {
-            string host;
-            string fileSystem;
-            string root;
-
-            if (request.MirroredDatabaseId is { } mirroredDatabaseId)
-            {
-                if (mirroredDatabaseId == Guid.Empty)
-                    return Error.BadRequest(ErrorCodes.LandingZone.BadRequest, "Mirrored database id is invalid.");
-                if (!Uri.TryCreate(options.OneLakeEndpoint, UriKind.Absolute, out var oneLake))
-                    return Error.BadRequest(ErrorCodes.LandingZone.UnsupportedEndpoint, "The OneLake endpoint is not configured correctly.");
-
-                host = oneLake.IdnHost;
-                fileSystem = connection.WorkspaceId.ToString("D");
-                root = $"{mirroredDatabaseId:D}/Files/LandingZone";
-            }
-            else
-            {
-                var text = request.StorageUri?.Trim();
-                if (string.IsNullOrEmpty(text))
-                    return Error.BadRequest(ErrorCodes.LandingZone.BadRequest, "Choose a mirrored database or enter a storage URI.");
-                if (!Uri.TryCreate(text, UriKind.Absolute, out var uri))
-                    return Error.BadRequest(ErrorCodes.LandingZone.UnsupportedEndpoint, "The storage URI is not valid.");
-                if (uri.Port is not (-1 or 443))
-                    return Error.BadRequest(ErrorCodes.LandingZone.UnsupportedEndpoint, "Custom ports are not supported.");
-
-                switch (uri.Scheme.ToLowerInvariant())
-                {
-                    case "abfss":
-                        // abfss://{file system}@{host}/{path}
-                        fileSystem = Uri.UnescapeDataString(uri.UserInfo);
-                        root = LandingZonePaths.Normalize(Uri.UnescapeDataString(uri.AbsolutePath));
-                        break;
-
-                    case "https":
-                        // https://{host}/{file system}/{path}
-                        var segments = Uri.UnescapeDataString(uri.AbsolutePath).Split('/', StringSplitOptions.RemoveEmptyEntries);
-                        if (segments.Length == 0)
-                            return Error.BadRequest(
-                                ErrorCodes.LandingZone.BadRequest,
-                                "The URI must include the workspace or container, e.g. https://onelake.dfs.fabric.microsoft.com/<workspace>/<item>/Files/LandingZone");
-
-                        fileSystem = segments[0];
-                        root = LandingZonePaths.Normalize(string.Join('/', segments.Skip(1)));
-                        break;
-
-                    default:
-                        return Error.BadRequest(ErrorCodes.LandingZone.UnsupportedEndpoint, "Only abfss:// and https:// URIs are supported.");
-                }
-
-                host = uri.IdnHost;
-            }
-
-            host = host.ToLowerInvariant();
-            if (!options.AllowedEndpointSuffixes.Any(suffix => host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)))
-                return Error.BadRequest(
-                    ErrorCodes.LandingZone.UnsupportedEndpoint,
-                    $"Storage host '{host}' is not allowed. Allowed hosts end with: {string.Join(", ", options.AllowedEndpointSuffixes)}.");
-
-            if
-            (
-                !(
-                    fileSystem.Length is > 0 and <= LandingZoneConfig.FileSystemMaxLength
-                    && char.IsLetterOrDigit(fileSystem[0])
-                    && fileSystem.All(c => char.IsLetterOrDigit(c) || c is '.' or '_' or '-' or ' ')
-                )
-            )
-                return Error.BadRequest(ErrorCodes.LandingZone.BadRequest, "The workspace or container name is not valid.");
-
-            return Result<LandingZoneLocation>.Success(new LandingZoneLocation(new Uri($"https://{host}"), fileSystem, root));
         }
     }
 }
