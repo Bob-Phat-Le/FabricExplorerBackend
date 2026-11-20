@@ -1,4 +1,4 @@
-﻿namespace FabricExplorerBackend.Application.LandingZone.Contracts.MetadataGenerate
+namespace FabricExplorerBackend.Application.LandingZone.Contracts.MetadataGenerate
 {
     public record XsdRecordField
     (
@@ -6,6 +6,9 @@
         string XsdType,
         string RecommendedFabricType,
         bool Nullable,
-        bool IsKeyCandidate
+        bool IsKeyCandidate,
+        bool IsAttribute = false,
+        bool IsNested = false,
+        bool IsRepeating = false
     );
 }

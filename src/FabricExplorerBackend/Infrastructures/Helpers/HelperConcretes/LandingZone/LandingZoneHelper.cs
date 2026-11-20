@@ -11,7 +11,7 @@ using System.IO.Compression;
 
 namespace FabricExplorerBackend.Infrastructures.Helpers.HelperConcretes.LandingZone
 {
-    public class LandingZoneHelper(
+    public partial class LandingZoneHelper(
         IOptions<LandingZoneOptions> config,
         IUnitOfWork unitOfWork,
         ILandingZoneStorage storage) : ILandingZoneHelper

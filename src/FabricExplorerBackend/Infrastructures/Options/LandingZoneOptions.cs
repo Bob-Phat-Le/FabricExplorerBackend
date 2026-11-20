@@ -14,5 +14,9 @@
         public int MaxArchiveFiles { get; init; } = 200;
         public int MaxBatchItems { get; init; } = 200;
         public int HistoryRetention { get; init; } = 200;
+        /// <summary>Largest XSD accepted by the metadata generator.</summary>
+        public int MaxXsdBytes { get; init; } = 5 * 1024 * 1024;
+        /// <summary>XSD fields whose name ends with one of these (case-insensitive) are suggested as key columns.</summary>
+        public string[] KeyColumnNameSuffixes { get; init; } = ["Id"];
     }
 }

@@ -1,5 +1,8 @@
 ﻿using Azure;
 using FabricExplorerBackend.Application.LandingZone.Contracts.Explorers;
+using FabricExplorerBackend.Application.LandingZone.MetadataGenerate.Formats;
+using FabricExplorerBackend.Application.LandingZone.MetadataGenerate.Generation;
+using FabricExplorerBackend.Application.LandingZone.MetadataGenerate.Xsd;
 using FabricExplorerBackend.Commons.Contracts;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
@@ -20,7 +23,10 @@ namespace FabricExplorerBackend.Application.LandingZone
         IUnitOfWork unitOfWork,
         ILandingZoneStorage storage,
         IOptions<LandingZoneOptions> landingZoneOptions,
-        TimeProvider timeProvider) : ILandingZoneService
+        TimeProvider timeProvider,
+        IXsdAnalyzer xsdAnalyzer,
+        IMetadataGenerator metadataGenerator,
+        IMetadataFormatRegistry metadataFormats) : ILandingZoneService
     {
         private readonly LandingZoneOptions options = landingZoneOptions.Value;
         private readonly ILandingZoneHelper landingZoneHelper = helpersFactory.GetHelper<ILandingZoneHelper>(HelperNames.LandingZoneHelper);

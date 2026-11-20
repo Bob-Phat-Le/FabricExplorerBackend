@@ -63,6 +63,12 @@ namespace FabricExplorerBackend.Commons.Errors
             public const string AlreadyExists = "landing_zone.already_exists";
             public const string UnsupportedEndpoint = "landing_zone.unsupported_endpoint";
         }
+        public static class MetadataGenerate
+        {
+            public const string InvalidXsd = "metadata_generate.invalid_xsd";
+            public const string InvalidMetadata = "metadata_generate.invalid_metadata";
+            public const string MetadataAlreadyExists = "metadata_generate.metadata_already_exists";
+        }
         public static class Sql { public const string QueryFailed = "sql.query_failed"; }
         public static class Cache { public const string Unavailable = "cache.unavailable"; }
         public static class Upstream { public const string Timeout = "upstream.timeout"; }

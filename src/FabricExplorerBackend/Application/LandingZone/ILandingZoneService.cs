@@ -29,6 +29,7 @@ namespace FabricExplorerBackend.Application.LandingZone
 
         Task<Result<IReadOnlyList<LandingZoneOperationResponse>>> GetOperationsAsync(Guid connectionId, int limit, CancellationToken cancellationToken = default);
 
+        Result<MetadataCapabilities> GetMetadataCapabilities();
         Task<Result<AnalyzeResponse>> AnalyzeXsdAsync(AnalyzeRequest request, CancellationToken cancellationToken = default);
         Task<Result<PreviewResponse>> PreviewAsync(PreviewRequest request, CancellationToken cancellationToken = default);
         Task<Result<PublishResponse>> PublishAsync(Guid connectionId, PublishRequest request, CancellationToken cancellationToken = default);
