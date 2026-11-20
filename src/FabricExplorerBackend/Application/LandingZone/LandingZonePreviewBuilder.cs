@@ -1,4 +1,4 @@
-﻿using FabricExplorerBackend.Application.LandingZone.Contracts;
+﻿using FabricExplorerBackend.Application.LandingZone.Contracts.Explorers;
 using System.Text;
 using System.Text.Json;
 

@@ -1,7 +1,5 @@
 ﻿using FabricExplorerBackend.Infrastructures.Helpers.HelperConcretes;
 using FabricExplorerBackend.Infrastructures.Helpers.HelperConcretes.LandingZone;
-using FabricExplorerBackend.Infrastructures.Options;
-using Microsoft.Extensions.Options;
 
 namespace FabricExplorerBackend.Infrastructures.Helpers.Factories
 {

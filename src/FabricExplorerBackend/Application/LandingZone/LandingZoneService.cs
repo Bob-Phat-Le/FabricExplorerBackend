@@ -1,5 +1,8 @@
 ﻿using Azure;
-using FabricExplorerBackend.Application.LandingZone.Contracts;
+using FabricExplorerBackend.Application.LandingZone.Contracts.Explorers;
+using FabricExplorerBackend.Application.LandingZone.MetadataGenerate.Formats;
+using FabricExplorerBackend.Application.LandingZone.MetadataGenerate.Generation;
+using FabricExplorerBackend.Application.LandingZone.MetadataGenerate.Xsd;
 using FabricExplorerBackend.Commons.Contracts;
 using FabricExplorerBackend.Commons.Errors;
 using FabricExplorerBackend.Commons.Results;
@@ -11,17 +14,19 @@ using FabricExplorerBackend.Infrastructures.LandingZone;
 using FabricExplorerBackend.Infrastructures.Options;
 using FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interfaces;
 using Microsoft.Extensions.Options;
-using System.IO.Compression;
 
 namespace FabricExplorerBackend.Application.LandingZone
 {
-    public sealed class LandingZoneService(
+    public partial class LandingZoneService(
         IHelpersFactory helpersFactory,
         ILogger<LandingZoneService> logger,
         IUnitOfWork unitOfWork,
         ILandingZoneStorage storage,
         IOptions<LandingZoneOptions> landingZoneOptions,
-        TimeProvider timeProvider) : ILandingZoneService
+        TimeProvider timeProvider,
+        IXsdAnalyzer xsdAnalyzer,
+        IMetadataGenerator metadataGenerator,
+        IMetadataFormatRegistry metadataFormats) : ILandingZoneService
     {
         private readonly LandingZoneOptions options = landingZoneOptions.Value;
         private readonly ILandingZoneHelper landingZoneHelper = helpersFactory.GetHelper<ILandingZoneHelper>(HelperNames.LandingZoneHelper);

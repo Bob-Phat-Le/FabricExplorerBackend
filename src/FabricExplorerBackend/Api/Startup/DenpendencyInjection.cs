@@ -3,6 +3,7 @@ using FabricExplorerBackend.Application.Connection;
 using FabricExplorerBackend.Application.EventStreaming;
 using FabricExplorerBackend.Application.Lakehouse;
 using FabricExplorerBackend.Application.LandingZone;
+using FabricExplorerBackend.Application.LandingZone.MetadataGenerate;
 using FabricExplorerBackend.Application.MirroredDatabase;
 using FabricExplorerBackend.Application.Notification;
 using FabricExplorerBackend.Application.Operation;
@@ -66,6 +67,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<ILandingZoneStorage, LandingZoneStorage>();
             services.AddScoped<IHelpersFactory, HelpersFactory>();
             services.AddScoped<ILandingZoneHelper, LandingZoneHelper>();
+            services.AddMetadataGeneration();
 
             return services;
         }

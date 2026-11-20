@@ -1,4 +1,5 @@
-﻿using FabricExplorerBackend.Application.LandingZone.Contracts;
+﻿using FabricExplorerBackend.Application.LandingZone.Contracts.Explorers;
+using FabricExplorerBackend.Application.LandingZone.Contracts.MetadataGenerate;
 using FabricExplorerBackend.Commons.Contracts;
 using FabricExplorerBackend.Commons.Results;
 
@@ -27,5 +28,10 @@ namespace FabricExplorerBackend.Application.LandingZone
         Task<Result<LandingZoneBatchResponse>> DeleteAsync(Guid connectionId, DeleteItemsRequest request, CancellationToken cancellationToken = default);
 
         Task<Result<IReadOnlyList<LandingZoneOperationResponse>>> GetOperationsAsync(Guid connectionId, int limit, CancellationToken cancellationToken = default);
+
+        Result<MetadataCapabilities> GetMetadataCapabilities();
+        Task<Result<AnalyzeResponse>> AnalyzeXsdAsync(AnalyzeRequest request, CancellationToken cancellationToken = default);
+        Task<Result<PreviewResponse>> PreviewAsync(PreviewRequest request, CancellationToken cancellationToken = default);
+        Task<Result<PublishResponse>> PublishAsync(Guid connectionId, PublishRequest request, CancellationToken cancellationToken = default);
     }
 }
