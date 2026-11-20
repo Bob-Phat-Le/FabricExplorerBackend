@@ -1,12 +1,11 @@
-using System.Xml.Schema;
 using FabricExplorerBackend.Application.LandingZone.Contracts.MetadataGenerate;
 using FabricExplorerBackend.Application.LandingZone.MetadataGenerate.Typing;
 using FabricExplorerBackend.Infrastructures.Options;
 using Microsoft.Extensions.Options;
+using System.Xml.Schema;
 
 namespace FabricExplorerBackend.Application.LandingZone.MetadataGenerate.Xsd
 {
-    /// <summary>Turns the child elements and attributes of a record type into column candidates.</summary>
     public sealed class XsdFieldExtractor(IFabricTypeResolver typeResolver, IOptions<LandingZoneOptions> options)
     {
         public IReadOnlyList<XsdRecordField> Extract(XmlSchemaComplexType recordType)

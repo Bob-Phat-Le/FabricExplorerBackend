@@ -7,6 +7,7 @@ namespace FabricExplorerBackend.Application.LandingZone.MetadataGenerate.Formats
     {
         public override bool RequiresColumnTypes => true;
 
+        //[SELF NOTE] This method returns a list of common options for delimited formats, such as CSV and DelimitedText. It includes options for first row as header, column separator, row separator, quote character, escape character, encoding, and null value. The column separator can be specified as a parameter, and additional leading options can be provided.
         protected static IReadOnlyList<FormatOption> OptionSet(string columnSeparator, params FormatOption[] leading) =>
         [
             ..leading,

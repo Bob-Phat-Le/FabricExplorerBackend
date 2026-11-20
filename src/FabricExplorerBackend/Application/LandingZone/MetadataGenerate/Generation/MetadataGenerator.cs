@@ -1,7 +1,7 @@
-using System.Text.Encodings.Web;
-using System.Text.Json;
 using FabricExplorerBackend.Application.LandingZone.Contracts.MetadataGenerate;
 using FabricExplorerBackend.Application.LandingZone.MetadataGenerate.Formats;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace FabricExplorerBackend.Application.LandingZone.MetadataGenerate.Generation
 {

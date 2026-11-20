@@ -1,8 +1,6 @@
 ﻿using FabricExplorerBackend.Application.LandingZone.Contracts.Explorers;
-using FabricExplorerBackend.Application.LandingZone.Contracts.MetadataGenerate;
 using FabricExplorerBackend.Commons.Results;
 using FabricExplorerBackend.Infrastructures.LandingZone;
-using System.Xml.Schema;
 
 namespace FabricExplorerBackend.Infrastructures.Helpers.HelperConcretes.LandingZone
 {
