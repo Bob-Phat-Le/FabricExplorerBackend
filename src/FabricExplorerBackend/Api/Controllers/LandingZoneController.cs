@@ -116,7 +116,7 @@ namespace FabricExplorerBackend.Api.Controllers
             [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
             [FromBody] CheckFilesExistRequest request,
             CancellationToken cancellationToken)
-            => (await landingZoneService.CheckFilesExistAsync(connectionId, request, cancellationToken)).ToActionResult(this);
+            => (await landingZoneService.CheckItemExistAsync(connectionId, request, cancellationToken)).ToActionResult(this);
 
         [HttpPost("files/upload")]
         [RequestSizeLimit(MaxUploadBytes)]
