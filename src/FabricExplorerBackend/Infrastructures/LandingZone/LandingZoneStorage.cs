@@ -82,11 +82,15 @@ namespace FabricExplorerBackend.Infrastructures.LandingZone
         {
             var full = Full(relativePath);
 
-            // The file system root itself.
             if (string.IsNullOrEmpty(full))
                 return (await fileSystem.ExistsAsync(cancellationToken)).Value;
 
-            return (await fileSystem.GetFileClient(full).ExistsAsync(cancellationToken)).Value;
+            var fileExists = (await fileSystem.GetFileClient(full).ExistsAsync(cancellationToken)).Value;
+
+            if (fileExists)
+                return true;
+
+            return (await fileSystem.GetDirectoryClient(full).ExistsAsync(cancellationToken)).Value;
         }
 
         public async Task<StorageFileInfo> GetFileInfoAsync(string relativePath, CancellationToken cancellationToken)

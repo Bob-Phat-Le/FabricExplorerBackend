@@ -19,7 +19,7 @@ namespace FabricExplorerBackend.Application.LandingZone
 
         Task<Result<LandingZoneDownload>> DownloadFileAsync(Guid connectionId, string? path, CancellationToken cancellationToken = default);
         Task<Result<LandingZoneDownload>> DownloadArchiveAsync(Guid connectionId, DownloadArchiveRequest request, CancellationToken cancellationToken = default);
-        Task<Result<CheckFilesExistResponse>> CheckFilesExistAsync(Guid connectionId, CheckFilesExistRequest request, CancellationToken cancellationToken = default);
+        Task<Result<CheckFilesExistResponse>> CheckItemExistAsync(Guid connectionId, CheckFilesExistRequest request, CancellationToken cancellationToken = default);
         Task<Result<LandingZoneBatchResponse>> UploadAsync(Guid connectionId, string? path, bool overwrite, IReadOnlyList<LandingZoneUploadFile> files, CancellationToken cancellationToken = default);
 
         Task<Result<LandingZoneItemResponse>> CreateFolderAsync(Guid connectionId, CreateFolderRequest request, CancellationToken cancellationToken = default);

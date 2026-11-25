@@ -348,7 +348,7 @@ namespace FabricExplorerBackend.Application.LandingZone
                 new LandingZoneDownload(archive, "landing-zone-files.zip", "application/zip"));
         }
 
-        public async Task<Result<CheckFilesExistResponse>> CheckFilesExistAsync(
+        public async Task<Result<CheckFilesExistResponse>> CheckItemExistAsync(
             Guid connectionId, CheckFilesExistRequest request, CancellationToken cancellationToken = default)
         {
             var names = (request.Names ?? [])
@@ -360,6 +360,9 @@ namespace FabricExplorerBackend.Application.LandingZone
             if (names.Count == 0)
                 return Result<CheckFilesExistResponse>.Success(new CheckFilesExistResponse([]));
 
+            if (request.IsFolder && names.Count > 1)
+                return Error.BadRequest(ErrorCodes.LandingZone.BadRequest, "Only one folder can be checked at a time.");
+
             if (names.Count > options.MaxBatchItems)
                 return Error.BadRequest(ErrorCodes.LandingZone.BadRequest, $"At most {options.MaxBatchItems} files can be checked at once.");
 
@@ -369,22 +372,30 @@ namespace FabricExplorerBackend.Application.LandingZone
             var session = opened.Data!;
             var destination = LandingZonePaths.Normalize(request.Path);
 
-            // A destination that does not exist yet cannot contain conflicts; Upload reports the missing folder itself.
             if (destination.Length > 0 && !await session.FileSystem.ExistsAsync(destination, cancellationToken))
                 return Result<CheckFilesExistResponse>.Success(new CheckFilesExistResponse([]));
 
             var existing = new List<string>();
+
             foreach (var name in names)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // Names the upload would reject anyway are not conflicts.
                 string valid;
-                try { valid = LandingZonePaths.ValidateName(name); }
-                catch (Commons.Errors.ApplicationException) { continue; }
+                try
+                {
+                    valid = LandingZonePaths.ValidateName(name);
+                }
+                catch (Commons.Errors.ApplicationException)
+                {
+                    continue;
+                }
 
-                if (await session.FileSystem.ExistsAsync(LandingZonePaths.Combine(destination, valid), cancellationToken))
+                if (await session.FileSystem.ExistsAsync(
+                        LandingZonePaths.Combine(destination, valid), cancellationToken))
+                {
                     existing.Add(name);
+                }
             }
 
             return Result<CheckFilesExistResponse>.Success(new CheckFilesExistResponse(existing));
