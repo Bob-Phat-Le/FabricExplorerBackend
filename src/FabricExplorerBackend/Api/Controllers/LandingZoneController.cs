@@ -110,6 +110,14 @@ namespace FabricExplorerBackend.Api.Controllers
             return File(file.Content, file.ContentType, file.FileName);
         }
 
+        /// <summary>Which of the given file names already exist in the destination folder (checked before an upload).</summary>
+        [HttpPost("files/exists")]
+        public async Task<ActionResult<ApiResponse<CheckFilesExistResponse>>> CheckFilesExist(
+            [FromHeader(Name = "X-Connection-Id")] Guid connectionId,
+            [FromBody] CheckFilesExistRequest request,
+            CancellationToken cancellationToken)
+            => (await landingZoneService.CheckFilesExistAsync(connectionId, request, cancellationToken)).ToActionResult(this);
+
         [HttpPost("files/upload")]
         [RequestSizeLimit(MaxUploadBytes)]
         [RequestFormLimits(MultipartBodyLengthLimit = MaxUploadBytes)]
