@@ -1,6 +1,4 @@
 ﻿using FabricExplorerBackend.Application.Configuration.Documents;
-using FabricExplorerBackend.Application.LandingZone.Contracts.Explorers;
-using FabricExplorerBackend.Infrastructures.Helpers.HelperConcretes.LandingZone;
 using FluentValidation;
 using ConnectionEntity = FabricExplorerBackend.Domain.Entities.Connection;
 
@@ -11,12 +9,8 @@ namespace FabricExplorerBackend.Application.Configuration.Validation
     {
         public const int NameMaxLength = 200;
 
-        private readonly ILandingZoneHelper landingZoneHelper;
-
-        public ConnectionEntryValidator(ILandingZoneHelper landingZoneHelper)
+        public ConnectionEntryValidator()
         {
-            this.landingZoneHelper = landingZoneHelper;
-
             RuleFor(x => x.Key)
                 .MustBeGuid(ValidationCodes.InvalidKey, "Key must be a non-empty GUID.");
 
@@ -58,22 +52,6 @@ namespace FabricExplorerBackend.Application.Configuration.Validation
                 .Must(environment => environment is null || environment.Trim().Length <= ConnectionEntity.EnvironmentMaxLength)
                     .WithErrorCode(ValidationCodes.TooLong)
                     .WithMessage($"Environment must be at most {ConnectionEntity.EnvironmentMaxLength} characters.");
-
-            // The Landing Zone URI is checked with the same parser the Landing Zone feature uses.
-            RuleFor(x => x.LandingZone)
-                .Must((entry, landingZone, context) =>
-                {
-                    var problem = FindLandingZoneProblem(entry, landingZone);
-                    if (problem is null)
-                        return true;
-
-                    context.MessageFormatter.AppendArgument("Reason", problem);
-                    return false;
-                })
-                    .WithErrorCode(ValidationCodes.InvalidLandingZone)
-                    .WithMessage("{Reason}")
-                    .OverridePropertyName("LandingZone.Uri")
-                    .When(x => !string.IsNullOrWhiteSpace(x.LandingZone?.Uri));
         }
 
         /// <summary>An unreadable tenantId is reported by its own rule, so it does not count as a mismatch here.</summary>
@@ -84,17 +62,6 @@ namespace FabricExplorerBackend.Application.Configuration.Validation
 
             return TokenEndpoints.TryGetTenantSegment(endpoint, out var tenant)
                 && string.Equals(tenant, tenantId.ToString("D"), StringComparison.OrdinalIgnoreCase);
-        }
-
-        private string? FindLandingZoneProblem(ConnectionEntry entry, LandingZoneEntry? landingZone)
-        {
-            ConfigurationGuid.TryParse(entry.WorkspaceId, out var workspaceId);
-
-            var parsed = landingZoneHelper.BuildLocation(
-                new ConnectionEntity { WorkspaceId = workspaceId },
-                new ConfigureLandingZoneRequest(null, landingZone!.Uri));
-
-            return parsed.IsSuccess ? null : parsed.Errors[0].Message;
         }
     }
 }

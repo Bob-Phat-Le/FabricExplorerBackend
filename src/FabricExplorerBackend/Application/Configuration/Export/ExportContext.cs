@@ -8,7 +8,6 @@ namespace FabricExplorerBackend.Application.Configuration.Export
     {
         public required Guid UserId { get; init; }
         public required bool ScopeAll { get; init; }
-        public required ExportInclude Include { get; init; }
         public required IConfigurationDocumentBuilder Builder { get; init; }
 
         /// <summary>Type -> ids chosen by the user (scope "selected").</summary>

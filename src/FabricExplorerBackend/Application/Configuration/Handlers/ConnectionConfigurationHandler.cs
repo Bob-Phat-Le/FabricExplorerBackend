@@ -50,7 +50,6 @@ namespace FabricExplorerBackend.Application.Configuration.Handlers
                     TokenEndpoint = TokenEndpoints.ForTenant(connection.TenantId),
                     ClientId = connection.ClientId.ToString("D"),
                     Credentials = new ConnectionCredentials { ClientSecret = ConfigurationFormat.SecretExcluded },
-                    LandingZone = null,
                     CreatedAt = connection.CreatedAt,
                     UpdatedAt = connection.UpdatedAt
                 };

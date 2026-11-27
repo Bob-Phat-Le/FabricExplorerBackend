@@ -22,7 +22,7 @@ namespace FabricExplorerBackend.Application.Configuration
     {
         // how this method works:
         // 1. validate the request (scope, items) with ExportRequestValidator
-        // 2. create an ExportContext with the current user, scope, include, and builder
+        // 2. create an ExportContext with the current user, scope, and builder
         // 3. if scope is selected, add the (already validated) items to the context.Selected dictionary
         // 4. loop through the handlers in descending order and call CollectExportAsync on each handler, passing the context and cancellation token
         // 5. after all handlers have collected their data, check if any items were exported; if none, return NotFound
@@ -44,7 +44,6 @@ namespace FabricExplorerBackend.Application.Configuration
             {
                 UserId = userId,
                 ScopeAll = scope == ConfigurationFormat.ScopeAll,
-                Include = request.Include ?? new ExportInclude(),
                 Builder = builder
             };
 
@@ -79,8 +78,7 @@ namespace FabricExplorerBackend.Application.Configuration
             var content = JsonSerializer.SerializeToUtf8Bytes(document, ConfigurationJson.File);
             var fileName = $"fabric-explorer-configuration-{clock.GetUtcNow():yyyyMMdd-HHmm}.json";
 
-            var summary = $"Exported {builder.ConnectionCount} connection(s) and {builder.SavedQueryCount} saved query(ies)"
-                + (context.Include.LandingZone ? " with Landing Zone." : ".");
+            var summary = $"Exported {builder.ConnectionCount} connection(s) and {builder.SavedQueryCount} saved query(ies).";
             await history.RecordAsync(
                 userId, ConfigurationOperationKinds.Export, ConfigurationOperationStatuses.Completed,
                 summary, exported, null, null, cancellationToken);
