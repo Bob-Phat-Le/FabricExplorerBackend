@@ -11,7 +11,6 @@
         public string? TokenEndpoint { get; set; }
         public string? ClientId { get; set; }
         public ConnectionCredentials? Credentials { get; set; }
-        public LandingZoneEntry? LandingZone { get; set; }
         public DateTimeOffset? CreatedAt { get; set; }
         public DateTimeOffset? UpdatedAt { get; set; }
     }

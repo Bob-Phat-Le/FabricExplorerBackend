@@ -5,6 +5,5 @@ namespace FabricExplorerBackend.Application.Configuration.Contracts
         /// <summary>"all" or "selected".</summary>
         public string? Scope { get; set; }
         public List<ExportItemRef>? Items { get; set; }
-        public ExportInclude? Include { get; set; }
     }
 }

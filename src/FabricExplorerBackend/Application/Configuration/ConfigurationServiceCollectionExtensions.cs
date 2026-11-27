@@ -31,10 +31,6 @@ namespace FabricExplorerBackend.Application.Configuration
             services.AddScoped<ISavedQueryImporter, SavedQueryImporter>();
             services.AddScoped<IConnectionReferenceBuilder, ConnectionReferenceBuilder>();
 
-            // extension points of a connection
-            services.AddScoped<IConnectionExportContributor, LandingZoneExportContributor>();
-            services.AddScoped<IConnectionImportStep, LandingZoneImportStep>();
-
             // import strategies
             services.AddScoped<IImportModeStrategy, MergeImportModeStrategy>();
             services.AddScoped<IImportModeStrategy, OverwriteImportModeStrategy>();
