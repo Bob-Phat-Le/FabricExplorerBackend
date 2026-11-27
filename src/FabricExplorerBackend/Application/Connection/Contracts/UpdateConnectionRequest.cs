@@ -7,5 +7,6 @@
         public Guid? WorkspaceId { get; set; }
         public Guid? ClientId { get; set; }
         public string? ClientSecret { get; set; } = null!;
+        public string? Environment { get; set; }
     }
 }

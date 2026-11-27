@@ -1,4 +1,5 @@
 using FabricExplorerBackend.Application.Catalog;
+using FabricExplorerBackend.Application.Configuration;
 using FabricExplorerBackend.Application.Connection;
 using FabricExplorerBackend.Application.EventStreaming;
 using FabricExplorerBackend.Application.Lakehouse;
@@ -8,9 +9,11 @@ using FabricExplorerBackend.Application.MirroredDatabase;
 using FabricExplorerBackend.Application.Notification;
 using FabricExplorerBackend.Application.Operation;
 using FabricExplorerBackend.Application.QueryService;
+using FabricExplorerBackend.Application.SavedQueries;
 using FabricExplorerBackend.Application.Warhouse;
 using FabricExplorerBackend.Application.Workspace;
 using FabricExplorerBackend.Commons.EventStreaming;
+using FabricExplorerBackend.Commons.Security;
 using FabricExplorerBackend.Features.Fabric.Lakehouse;
 using FabricExplorerBackend.Infrastructures.BackgroundJobs;
 using FabricExplorerBackend.Infrastructures.Cache;
@@ -69,6 +72,11 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<ILandingZoneHelper, LandingZoneHelper>();
             services.AddMetadataGeneration();
 
+            services.AddScoped<ICurrentUser, CurrentUser>();
+            services.AddScoped<ISavedQueryService, SavedQueryService>();
+            services.AddScoped<ISavedQueryMapper, SavedQueryMapper>();
+            services.AddConfigurationTransfer();
+
             return services;
         }
 
@@ -86,6 +94,8 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddScoped<IFabricOperationRepository, FabricOperationRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<ILandingZoneRepository, LandingZoneRepository>();
+            services.AddScoped<ISavedQueryRepository, SavedQueryRepository>();
+            services.AddScoped<IConfigurationOperationRepository, ConfigurationOperationRepository>();
 
             // Event streaming (SSE): registry in-memory shared globally for the whole app so must be singleton
             services.TryAddSingleton(TimeProvider.System);
@@ -148,7 +158,9 @@ namespace FabricExplorerBackend.Api.Startup
                         return uri.IsLoopback;
                     })
                     .AllowAnyHeader()
-                    .AllowAnyMethod();
+                    .AllowAnyMethod()
+                    // so the browser can read the file name and counts of an exported file
+                    .WithExposedHeaders("Content-Disposition", "X-Configuration-Exported", "X-Configuration-Skipped");
                 });
             });
 
@@ -168,6 +180,7 @@ namespace FabricExplorerBackend.Api.Startup
             services.AddOptions<EventStreamingOptions>().BindConfiguration(EventStreamingOptions.SectionName);
             services.AddOptions<CatalogOptions>().BindConfiguration(CatalogOptions.SectionName);
             services.AddOptions<LandingZoneOptions>().BindConfiguration(LandingZoneOptions.SectionName);
+            services.AddOptions<ConfigurationTransferOptions>().BindConfiguration(ConfigurationTransferOptions.SectionName);
 
             return services;
         }

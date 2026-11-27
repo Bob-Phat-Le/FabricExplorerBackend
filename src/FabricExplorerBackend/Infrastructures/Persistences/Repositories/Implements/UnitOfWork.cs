@@ -9,7 +9,9 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
         IConnectionRepository connectionRepository,
         IFabricOperationRepository fabricOperationRepository,
         INotificationRepository notificationRepository,
-        ILandingZoneRepository landingZoneRepository) : IUnitOfWork
+        ILandingZoneRepository landingZoneRepository,
+        ISavedQueryRepository savedQueryRepository,
+        IConfigurationOperationRepository configurationOperationRepository) : IUnitOfWork
     {
         public async Task CommitTransaction(CancellationToken cancellationToken = default)
         {
@@ -42,5 +44,9 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
         public IFabricOperationRepository FabricOperationRepository => fabricOperationRepository;
         public INotificationRepository NotificationRepository => notificationRepository;
         public ILandingZoneRepository LandingZoneRepository => landingZoneRepository;
+        public ISavedQueryRepository SavedQueryRepository => savedQueryRepository;
+        public IConfigurationOperationRepository ConfigurationOperationRepository => configurationOperationRepository;
+
+        public void ClearTracking() => context.ChangeTracker.Clear();
     }
 }

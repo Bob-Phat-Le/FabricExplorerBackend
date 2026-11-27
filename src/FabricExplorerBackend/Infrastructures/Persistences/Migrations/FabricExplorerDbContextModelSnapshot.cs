@@ -22,6 +22,53 @@ namespace FabricExplorerBackend.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.ConfigurationOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<int>("ItemCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("ResultJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Summary")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.HasIndex("UserId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
+
+                    b.ToTable("ConfigurationOperations");
+                });
+
             modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.Connection", b =>
                 {
                     b.Property<Guid>("Id")
@@ -44,6 +91,13 @@ namespace FabricExplorerBackend.Migrations
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Environment")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("ExternalKey")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -62,6 +116,10 @@ namespace FabricExplorerBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ExternalKey")
+                        .IsUnique()
+                        .HasFilter("\"DeletedAt\" IS NULL");
+
                     b.HasIndex("WorkspaceId")
                         .IsUnique()
                         .HasFilter("\"DeletedAt\" IS NULL");
@@ -76,6 +134,7 @@ namespace FabricExplorerBackend.Migrations
                             ClientSecret = "8f3e1a2b-9c4d-4e5f-8a1b-3c5d7e9f2a4b",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 28, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             CreatedBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            ExternalKey = new Guid("55555555-5555-5555-5555-555555555555"),
                             Name = "Production Fabric",
                             TenantId = new Guid("72f988bf-86f1-41af-91ab-2d7cd011db47"),
                             WorkspaceId = new Guid("12345678-abcd-1234-abcd-1234567890ab")
@@ -87,6 +146,7 @@ namespace FabricExplorerBackend.Migrations
                             ClientSecret = "secret",
                             CreatedAt = new DateTimeOffset(new DateTime(2026, 9, 28, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             CreatedBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            ExternalKey = new Guid("66666666-6666-6666-6666-666666666666"),
                             Name = "Staging Analytics",
                             TenantId = new Guid("72f988bf-86f1-41af-91ab-2d7cd011db47"),
                             WorkspaceId = new Guid("87654321-abcd-4321-abcd-0987654321ba")
@@ -285,6 +345,74 @@ namespace FabricExplorerBackend.Migrations
                     b.ToTable("Notifications");
                 });
 
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.SavedQuery", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("ExternalKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("ItemType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<int?>("MaxRows")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Sql")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConnectionId");
+
+                    b.HasIndex("OwnerId", "ExternalKey")
+                        .IsUnique();
+
+                    b.HasIndex("OwnerId", "ConnectionId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("SavedQueries");
+                });
+
             modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -369,6 +497,15 @@ namespace FabricExplorerBackend.Migrations
                     b.Navigation("Operation");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.SavedQuery", b =>
+                {
+                    b.HasOne("FabricExplorerBackend.Domain.Entities.Connection", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("FabricExplorerBackend.Domain.Entities.User", b =>

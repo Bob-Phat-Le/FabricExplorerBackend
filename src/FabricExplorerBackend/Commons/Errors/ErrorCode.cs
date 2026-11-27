@@ -25,6 +25,26 @@ namespace FabricExplorerBackend.Commons.Errors
             public const string Duplicated = "connection.duplicated";
             public const string BadRequest = "connection.bad_request";
         }
+        public static class SavedQuery
+        {
+            public const string NotFound = "saved_query.not_found";
+            public const string Duplicated = "saved_query.duplicated";
+            public const string BadRequest = "saved_query.bad_request";
+        }
+        public static class Configuration
+        {
+            public const string InvalidFormat = "configuration.invalid_format";
+            public const string UnsupportedVersion = "configuration.unsupported_version";
+            public const string TooLarge = "configuration.too_large";
+            public const string IntegrityMismatch = "configuration.integrity_mismatch";
+            public const string ReferenceUnresolved = "configuration.reference_unresolved";
+            public const string InvalidMode = "configuration.invalid_mode";
+            public const string InvalidSelection = "configuration.invalid_selection";
+            public const string InvalidMapping = "configuration.invalid_mapping";
+            public const string InvalidIdempotencyKey = "configuration.invalid_idempotency_key";
+            public const string RolledBack = "configuration.rolled_back";
+            public const string EntryFailed = "configuration.entry_failed";
+        }
         public static class Auth
         {
             public const string TokenFailed = "auth.token_failed";

@@ -11,6 +11,8 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<LandingZoneConfig> LandingZoneConfigs { get; set; }
         public DbSet<LandingZoneOperation> LandingZoneOperations { get; set; }
+        public DbSet<SavedQuery> SavedQueries { get; set; }
+        public DbSet<ConfigurationOperation> ConfigurationOperations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -31,6 +33,11 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
                     .HasIndex(c => c.WorkspaceId)
                     .IsUnique()
                     .HasFilter("\"DeletedAt\" IS NULL");
+                entity
+                    .HasIndex(c => c.ExternalKey)
+                    .IsUnique()
+                    .HasFilter("\"DeletedAt\" IS NULL");
+                entity.Property(c => c.Environment).HasMaxLength(Connection.EnvironmentMaxLength);
             });
             modelBuilder.Entity<FabricOperation>(entity =>
             {
@@ -114,6 +121,42 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
                     .WithMany()
                     .HasForeignKey(o => o.ConnectionId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<SavedQuery>(entity =>
+            {
+                entity.HasKey(q => q.Id);
+
+                entity.Property(q => q.Name).IsRequired().HasMaxLength(SavedQuery.NameMaxLength);
+                entity.Property(q => q.Description).HasMaxLength(SavedQuery.DescriptionMaxLength);
+                entity.Property(q => q.ItemType).IsRequired().HasMaxLength(SavedQuery.ItemTypeMaxLength);
+                entity.Property(q => q.ItemName).IsRequired().HasMaxLength(SavedQuery.ItemNameMaxLength);
+                entity.Property(q => q.Language).IsRequired().HasMaxLength(SavedQuery.LanguageMaxLength);
+                entity.Property(q => q.Sql).IsRequired();
+
+                // Name is the natural key of a query inside one connection of one owner.
+                entity.HasIndex(q => new { q.OwnerId, q.ConnectionId, q.Name }).IsUnique();
+                entity.HasIndex(q => new { q.OwnerId, q.ExternalKey }).IsUnique();
+
+                entity.HasOne<Connection>()
+                    .WithMany()
+                    .HasForeignKey(q => q.ConnectionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ConfigurationOperation>(entity =>
+            {
+                entity.HasKey(o => o.Id);
+
+                entity.Property(o => o.Kind).IsRequired().HasMaxLength(ConfigurationOperation.KindMaxLength);
+                entity.Property(o => o.Status).IsRequired().HasMaxLength(ConfigurationOperation.StatusMaxLength);
+                entity.Property(o => o.Summary).HasMaxLength(ConfigurationOperation.SummaryMaxLength);
+                entity.Property(o => o.IdempotencyKey).HasMaxLength(ConfigurationOperation.IdempotencyKeyMaxLength);
+
+                entity.HasIndex(o => new { o.UserId, o.CreatedAt });
+                entity.HasIndex(o => new { o.UserId, o.IdempotencyKey })
+                    .IsUnique()
+                    .HasFilter("\"IdempotencyKey\" IS NOT NULL");
             });
 
             modelBuilder.SeedData();

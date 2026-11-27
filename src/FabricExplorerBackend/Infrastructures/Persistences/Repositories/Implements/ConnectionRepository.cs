@@ -17,6 +17,30 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Implem
             return context.Connections.OrderBy(c => c.CreatedAt).ThenBy(c => c.Id).FirstOrDefaultAsync(c => c.DeletedAt == null && c.WorkspaceId == workspaceId, cancellationToken);
         }
 
+        public Task<Connection?> FindByExternalKeyAsync(Guid externalKey, bool trackChanges = false, CancellationToken cancellationToken = default)
+        {
+            var query = context.Connections.Where(c => c.DeletedAt == null && c.ExternalKey == externalKey);
+            if (!trackChanges)
+                query = query.AsNoTracking();
+            return query.FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public Task<Connection?> FindByWorkspaceIdAsync(Guid workspaceId, bool trackChanges = false, CancellationToken cancellationToken = default)
+        {
+            var query = context.Connections.Where(c => c.DeletedAt == null && c.WorkspaceId == workspaceId);
+            if (!trackChanges)
+                query = query.AsNoTracking();
+            return query.FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public Task<List<Connection>> GetByIdsAsync(IReadOnlyCollection<Guid> ids, bool trackChanges = false, CancellationToken cancellationToken = default)
+        {
+            var query = context.Connections.Where(c => c.DeletedAt == null && ids.Contains(c.Id));
+            if (!trackChanges)
+                query = query.AsNoTracking();
+            return query.OrderBy(c => c.CreatedAt).ThenBy(c => c.Id).ToListAsync(cancellationToken);
+        }
+
         public void Delete(Connection entity)
         {
             if (entity is ISoftDeletable softDeletableEntity)

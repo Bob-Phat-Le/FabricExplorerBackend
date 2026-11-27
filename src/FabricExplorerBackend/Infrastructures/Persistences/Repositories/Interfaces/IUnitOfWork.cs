@@ -14,5 +14,10 @@ namespace FabricExplorerBackend.Infrastructures.Persistences.Repositories.Interf
         IFabricOperationRepository FabricOperationRepository { get; }
         INotificationRepository NotificationRepository { get; }
         ILandingZoneRepository LandingZoneRepository { get; }
+        ISavedQueryRepository SavedQueryRepository { get; }
+        IConfigurationOperationRepository ConfigurationOperationRepository { get; }
+
+        /// <summary>Detaches every tracked entity, e.g. after a failed SaveChanges so later work starts clean.</summary>
+        void ClearTracking();
     }
 }

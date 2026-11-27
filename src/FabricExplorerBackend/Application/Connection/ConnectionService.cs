@@ -72,6 +72,9 @@ namespace FabricExplorerBackend.Application.Connection
             if (connection == null)
                 return Error.NotFound(ErrorCodes.Connection.NotFound, "Connection not found");
 
+            if (request.Environment?.Length > Domain.Entities.Connection.EnvironmentMaxLength)
+                return Error.BadRequest(ErrorCodes.Connection.BadRequest, $"Environment must be at most {Domain.Entities.Connection.EnvironmentMaxLength} characters");
+
             return await notificationService.ExecuteWithNotificationAsync<ConfirmationResponse>(
                 httpContext.HttpContext!.User.GetUserId(), NotificationTemplates.Connection.Updated, connection.Name, async () =>
             {
@@ -135,7 +138,11 @@ namespace FabricExplorerBackend.Application.Connection
             => await notificationService.ExecuteWithNotificationAsync<ConfirmationResponse>(
                 httpContext.HttpContext!.User.GetUserId(), NotificationTemplates.Connection.Created, request.Name, async () =>
             {
+                if (request.Environment?.Length > Domain.Entities.Connection.EnvironmentMaxLength)
+                    return Error.BadRequest(ErrorCodes.Connection.BadRequest, $"Environment must be at most {Domain.Entities.Connection.EnvironmentMaxLength} characters");
+
                 var connection = connectionMapper.Map(request);
+                connection.ExternalKey = Guid.NewGuid();
                 connection.CreatedAt = DateTimeOffset.UtcNow;
                 connection.CreatedBy = Guid.Empty;
                 connection.ClientSecret = secretProtector.Protect(connection.ClientSecret);
