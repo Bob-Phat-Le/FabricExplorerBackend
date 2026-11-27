@@ -42,6 +42,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
             Connection seededConnection1 = new()
             {
                 Id = connectionId1,
+                ExternalKey = Guid.Parse("55555555-5555-5555-5555-555555555555"),
                 Name = "Production Fabric",
                 CreatedAt = createdAt,
                 ClientId = clientId1,
@@ -55,6 +56,7 @@ namespace FabricExplorerBackend.Infrastructures.Persistences
             Connection seededConnection2 = new()
             {
                 Id = connectionId2,
+                ExternalKey = Guid.Parse("66666666-6666-6666-6666-666666666666"),
                 Name = "Staging Analytics",
                 CreatedAt = createdAt,
                 ClientId = clientId2,

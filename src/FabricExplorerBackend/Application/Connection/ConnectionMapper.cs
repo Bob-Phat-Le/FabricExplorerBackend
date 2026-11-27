@@ -8,8 +8,6 @@ namespace FabricExplorerBackend.Mappers
     public partial class ConnectionMapper : IConnectionMapper
     {
 
-        [MapperIgnoreSource(nameof(Domain.Entities.Connection.CreatedAt))]
-        [MapperIgnoreSource(nameof(Domain.Entities.Connection.UpdatedAt))]
         [MapperIgnoreSource(nameof(Domain.Entities.Connection.DeletedAt))]
         [MapperIgnoreSource(nameof(Domain.Entities.Connection.IsDeleted))]
         [MapperIgnoreSource(nameof(Domain.Entities.Connection.CreatedBy))]
@@ -17,6 +15,7 @@ namespace FabricExplorerBackend.Mappers
         public partial ConnectionResponse Map(Domain.Entities.Connection connection);
         public partial IEnumerable<ConnectionResponse> Map(IEnumerable<Domain.Entities.Connection> connectionList);
 
+        [MapperIgnoreTarget(nameof(Domain.Entities.Connection.ExternalKey))]
         [MapperIgnoreTarget(nameof(Domain.Entities.Connection.CreatedAt))]
         [MapperIgnoreTarget(nameof(Domain.Entities.Connection.UpdatedAt))]
         [MapperIgnoreTarget(nameof(Domain.Entities.Connection.DeletedAt))]
@@ -25,6 +24,7 @@ namespace FabricExplorerBackend.Mappers
         [MapperIgnoreTarget(nameof(Domain.Entities.Connection.UpdatedBy))]
         public partial void Map(UpdateConnectionRequest request, Domain.Entities.Connection connection);
 
+        [MapperIgnoreTarget(nameof(Domain.Entities.Connection.ExternalKey))]
         [MapperIgnoreTarget(nameof(Domain.Entities.Connection.CreatedAt))]
         [MapperIgnoreTarget(nameof(Domain.Entities.Connection.UpdatedAt))]
         [MapperIgnoreTarget(nameof(Domain.Entities.Connection.DeletedAt))]
